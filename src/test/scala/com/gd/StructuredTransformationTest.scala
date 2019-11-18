@@ -6,7 +6,23 @@ import org.scalatest.FunSuite
 
 class StructuredTransformationTest extends FunSuite {
 
-  val spark = SparkSession
+  private val dataFile: String = {
+    val pwd = System.getProperty("user.dir")
+    val file = s"file:///$pwd/build/resources/test/"
+
+    file
+  }
+
+  private val dataSchema = StructType(
+    Array(
+      StructField("url", StringType, nullable = false),
+      StructField("ip", StringType, nullable = false),
+      StructField("event_time", TimestampType, nullable = true),
+      StructField("type", StringType, nullable = true)
+    )
+  )
+
+  private val spark = SparkSession
     .builder()
     .appName("test")
     .master("local[*]")
@@ -18,32 +34,28 @@ class StructuredTransformationTest extends FunSuite {
       println(s"$k => $v")
   }
 
-  test("testTransform") {
+  test("test transformation logic") {
+    import org.apache.spark.sql.streaming.Trigger
+    import scala.concurrent.duration._
 
-    val schema = StructType(
-      Array(
-        StructField("url", StringType, nullable = false),
-        StructField("ip", StringType, nullable = false),
-        StructField("event_time", TimestampType, nullable = true),
-        StructField("type", StringType, nullable = true)
-      )
-    )
+    val timeoutMs = 1000 * 30
 
-    val pwd = System.getProperty("user.dir")
-    val dataFile = s"file:///$pwd/build/resources/test/"
-
-    val df = spark
+    val sdf = spark
       .readStream
-      .schema(schema)
+      .schema(dataSchema)
       .json(dataFile)
 
-    val query = df
+    val transformer = new StructuredTransformation()
+
+    val transformedSDF = transformer.transform(sdf)
+
+    val query = transformedSDF
       .writeStream
       .outputMode("update")
       .format("console")
+      .option("truncate", "false")
+      .trigger(Trigger.ProcessingTime(timeoutMs.millis))
       .start()
-
-    val timeoutMs = 1000 * 10
 
     query.awaitTermination(timeoutMs)
 
