@@ -1,0 +1,109 @@
+String containerName = "stop-bot-00"
+String containerTag = "gd/spark-stop-bot"
+String dockerWorkingDir = "$project.buildDir/docker"
+
+// TODO: this task implicitly requires shadowJar plugin.
+task setupDockerContext(type:Sync) {
+    description "Copy jar containing all dependencies into $dockerWorkingDir."
+
+    group 'docker'
+
+    from 'src/main/docker', shadowJar.outputs.files
+    into dockerWorkingDir
+}
+
+def sharedExecTaskCfg = {
+    group 'docker'
+    workingDir dockerWorkingDir
+}
+
+task buildDockerImage(type:Exec) {
+    description "Build Docker image and tag it as $containerTag."
+
+    with sharedExecTaskCfg
+
+    dependsOn setupDockerContext as Task
+
+    commandLine "docker", "build",
+            "-t", containerTag,
+            "."
+}
+
+task findRunningDockerContainer(type:Exec) {
+    description "Check if $containerName Docker container is running."
+
+    with sharedExecTaskCfg
+
+    standardOutput = new ByteArrayOutputStream()
+
+    commandLine "docker", "ps",
+            "-f", "name=$containerName",
+            "-q"
+}
+
+task killDockerContainer(type:Exec) {
+    description "Kill $containerName Docker container if it is running."
+
+    with sharedExecTaskCfg
+
+    dependsOn findRunningDockerContainer as Task
+
+    onlyIf {
+        (findRunningDockerContainer as Exec).standardOutput.toByteArray().length > 0
+    }
+
+    commandLine "docker", "kill",
+            containerName
+}
+
+task findAllDockerContainers(type:Exec) {
+    description "Find stopped $containerName Docker container."
+
+    with sharedExecTaskCfg
+
+    standardOutput = new ByteArrayOutputStream()
+
+    commandLine "docker", "ps",
+            "-f", "name=$containerName",
+            "-qa"
+}
+
+task rmDockerContainer(type:Exec) {
+    description "Remove stopped $containerName Docker container."
+
+    with sharedExecTaskCfg
+
+    dependsOn findAllDockerContainers as Task
+
+    onlyIf {
+        (findAllDockerContainers as Exec).standardOutput.toByteArray().length > 0
+    }
+
+    commandLine "docker", "rm",
+            containerName
+}
+
+task cleanDockerContainer(type:Exec) {
+    description "Kill (if running) and remove $containerName Docker container."
+
+    with sharedExecTaskCfg
+
+    dependsOn killDockerContainer as Task, rmDockerContainer as Task
+
+    commandLine "echo", "cleaned up successfully"
+}
+
+task runDockerImage(type:Exec) {
+    description "Rebuild image and run $containerName Docker container."
+
+    with sharedExecTaskCfg
+
+    dependsOn cleanDockerContainer as Task, buildDockerImage as Task
+
+    commandLine "docker", "run",
+            "-t",
+            "--name", containerName,
+            "--hostname", containerName,
+            "--network", "streaming-capstone",
+            "$containerTag:latest"
+}

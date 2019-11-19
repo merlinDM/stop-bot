@@ -1,20 +1,12 @@
-//buildscript {
-//    repositories {
-//        jcenter()
-//        maven {
-//            url 'https://plugins.gradle.org/m2/'
-//        }
-//    }
-//}
-
 plugins {
     id 'java'
     id 'scala'
     id 'application'
     id "com.github.maiflai.scalatest" version "0.25"
     id 'com.github.johnrengelman.shadow' version "5.2.0"
-//    id "com.gorylenko.gradle-git-properties" version "2.2.0"
 }
+
+apply from: 'docker.gradle'
 
 ext {
     scala = '2.12.10'
@@ -52,14 +44,18 @@ dependencies {
     compile "org.apache.spark:spark-core_$scalaMajorVersion:$sparkVersion"
     compile "org.apache.spark:spark-sql_$scalaMajorVersion:$sparkVersion"
     compile "org.apache.spark:spark-streaming_$scalaMajorVersion:$sparkVersion"
-//    compile "org.apache.spark:spark-mllib_$scalaMajorVersion:$sparkVersion"
-//    compile "org.apache.spark:spark-graphx_$scalaMajorVersion:$sparkVersion"
-//    compile "org.apache.spark:spark-streaming-flume-assembly_$scalaMajorVersion:$sparkVersion"
-//    compile "org.apache.spark:spark-launcher_$scalaMajorVersion:$sparkVersion"
-//    compile "org.apache.spark:spark-catalyst_$scalaMajorVersion:$sparkVersion"
+    compile "org.apache.spark:spark-sql-kafka-0-10_$scalaMajorVersion:$sparkVersion"
 
     testCompile "org.scalatest:scalatest_$scalaMajorVersion:$scalaTestVersion"
     testRuntime "org.pegdown:pegdown:$pegdownVersion"
     testRuntime "org.slf4j:slf4j-log4j12:$slf4jVersion"
 }
 
+// Disable all distributions
+distTar.enabled = false
+distZip.enabled = false
+shadowDistTar.enabled = false
+shadowDistZip.enabled = false
+
+// disable tests
+test.enabled = false
