@@ -3,12 +3,20 @@ FROM spark-base:latest
 ENV SPARK_MASTER_URL "spark://spark-master:7077"
 ENV SPARK_SUBMIT_ARGS ""
 ENV SPARK_APPLICATION_ARGS ""
-ENV SPARK_APPLICATION_JAR_LOCATION file:///application/stop-bot-1.0.0-SNAPSHOT-all.jar
-ENV SPARK_APPLICATION_MAIN_CLASS com.gd.StopBotApp
+ENV SHARED_DIR /shared
+ENV APP_DIR /application
 
-COPY . /application/
+WORKDIR $APP_DIR
 
-RUN chmod +x /application/stop-bot-1.0.0-SNAPSHOT-all.jar && \
-    chmod +x /application/spark-submit.sh
+COPY . .
 
-CMD ["/bin/bash", "/application/spark-submit.sh"]
+ARG DOCKER_ARG_JAR_NAME
+ARG DOCKER_ARG_MAIN_CLASS
+
+ENV SPARK_APPLICATION_MAIN_CLASS $DOCKER_ARG_MAIN_CLASS
+ENV SPARK_APPLICATION_JAR_LOCATION $APP_DIR/$DOCKER_ARG_JAR_NAME
+ENV SPARK_SHARED_JAR_LOCATION $SHARED_DIR/$DOCKER_ARG_JAR_NAME
+
+RUN chmod +x $DOCKER_ARG_JAR_NAME && chmod +x spark-submit.sh
+
+CMD ["/bin/bash", "spark-submit.sh"]

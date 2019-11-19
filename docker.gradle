@@ -26,6 +26,8 @@ task buildDockerImage(type:Exec) {
 
     commandLine "docker", "build",
             "-t", containerTag,
+            "--build-arg", "DOCKER_ARG_JAR_NAME=${project.shadowJar.archiveFileName.get()}",
+            "--build-arg", "DOCKER_ARG_MAIN_CLASS=${mainClassName}",
             "."
 }
 

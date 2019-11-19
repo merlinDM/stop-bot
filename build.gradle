@@ -6,8 +6,6 @@ plugins {
     id 'com.github.johnrengelman.shadow' version "5.2.0"
 }
 
-apply from: 'docker.gradle'
-
 ext {
     scala = '2.12.10'
     scalaMajorVersion = '2.12'
@@ -59,3 +57,5 @@ shadowDistZip.enabled = false
 
 // disable tests
 test.enabled = false
+
+apply from: 'docker.gradle'
