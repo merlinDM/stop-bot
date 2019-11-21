@@ -26,7 +26,7 @@ class StructuredTransformationTest extends FunSuite {
     .builder()
     .appName("test")
     .master("local[*]")
-    .config("spark.local.dir", "/tmp")
+    .config("spark.local.dir", "/tmp/spark")
     .getOrCreate()
 
   spark.conf.getAll.foreach {

@@ -7,32 +7,19 @@ import org.apache.spark.sql.streaming.Trigger
 object StopBotApp extends StrictLogging {
 
   def main(args: Array[String]): Unit = {
-
-    // Set up SparkStreaming
-    val spark = SparkSession
-      .builder()
-      .appName("test")
-      // TODO Should master be provided when executing through spark-submit?..
-//      .master("local[*]")
-      .config("spark.local.dir", "/tmp")
-      .getOrCreate()
-
     // Set up Logging
     logger.info("Starting the application")
 
+    setupSpark()
+
     // Load Source properties
-    val source = new KafkaSource(spark)
+    val source = new KafkaSource()
     source.init()
     val sdf = source.read()
 
-    val query = sdf.writeStream
-      .outputMode("update")
-      .format("console")
-      .option("truncate", "false")
-      .start()
-
-    query.awaitTermination(30 * 1000)
-
+    val sink = new ConsoleSink()
+    sink.init()
+    sink.write(sdf)
 
     // Load Sink properties
 
@@ -45,4 +32,13 @@ object StopBotApp extends StrictLogging {
     // * Define what to do on restart
 
   }
+
+  def setupSpark(): Unit = {
+    // Set up SparkStreaming
+    val spark = SparkSession
+      .builder()
+      .appName("Stop Bot")
+      .getOrCreate()
+  }
+
 }
