@@ -55,9 +55,9 @@ class StructuredTransformationTest extends FunSuite {
       .format("console")
       .option("truncate", "false")
       .trigger(Trigger.ProcessingTime(timeoutMs.millis))
-      .start()
+//      .start()
 
-    query.awaitTermination(timeoutMs)
+//    query.awaitTermination(timeoutMs)
 
   }
 
