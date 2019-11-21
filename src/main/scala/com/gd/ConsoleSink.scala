@@ -6,12 +6,12 @@ class ConsoleSink {
   private var sparkSession: SparkSession = _
   private var timeoutMs: Option[Long] = None
 
-  def init(): Unit = {
+  def init(timeoutMs: Long = 20000): Unit = {
     sparkSession = SparkSession
       .builder()
       .getOrCreate()
 
-    timeoutMs = Some(20000)
+    this.timeoutMs = Some(timeoutMs)
   }
 
   def write(sdf: DataFrame) = {
