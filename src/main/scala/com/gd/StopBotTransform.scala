@@ -3,7 +3,7 @@ package com.gd
 import org.apache.spark.sql.{DataFrame, SparkSession}
 import org.apache.spark.sql.functions._
 
-class StructuredTransformation {
+class StopBotTransform {
 
   def transform(sdf: DataFrame): DataFrame = {
     sdf

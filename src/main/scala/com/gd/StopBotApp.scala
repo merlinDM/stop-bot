@@ -15,11 +15,14 @@ object StopBotApp extends StrictLogging {
     // Load Source properties
     val source = new KafkaSource()
     source.init()
-    val sdf = source.read()
+    val sDF = source.read()
+
+    val stopBotTransform = new StopBotTransform()
+    val tDF = stopBotTransform.transform(sDF)
 
     val sink = new ConsoleSink()
-    sink.init()
-    sink.write(sdf)
+    sink.init(timeoutMs = 120000)
+    sink.write(tDF)
 
     // Load Sink properties
 

@@ -4,7 +4,7 @@ import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.types.{StringType, StructField, StructType, TimestampType}
 import org.scalatest.FunSuite
 
-class StructuredTransformationTest extends FunSuite {
+class StopBotTransformTest extends FunSuite {
 
   private val dataFile: String = {
     val pwd = System.getProperty("user.dir")
@@ -45,7 +45,7 @@ class StructuredTransformationTest extends FunSuite {
       .schema(dataSchema)
       .json(dataFile)
 
-    val transformer = new StructuredTransformation()
+    val transformer = new StopBotTransform()
 
     val transformedSDF = transformer.transform(sdf)
 
