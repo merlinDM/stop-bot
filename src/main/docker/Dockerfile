@@ -1,7 +1,7 @@
-FROM spark-base:latest
+FROM gd/spark-base:latest
 
 ENV SPARK_MASTER_URL "spark://spark-master:7077"
-ENV SPARK_SUBMIT_ARGS ""
+ENV SPARK_SUBMIT_ARGS "--conf spark.executor.memory=512m"
 ENV SPARK_APPLICATION_ARGS ""
 ENV SHARED_DIR /shared
 ENV APP_DIR /application

@@ -1,0 +1,47 @@
+version: '3.7'
+services:
+  spark-master:
+    image: gd/spark-master:latest
+    ports:
+      - "9090:9090"
+#      - "7077:7077"
+    volumes:
+      - streaming-capstone:/shared/:ro
+    environment:
+      - SPARK_LOCAL_IP=spark-master
+      - SPARK_MASTER_WEBUI_PORT=9090
+  spark-worker:
+    image: gd/spark-worker:latest
+    depends_on:
+      - spark-master
+    environment:
+      - SPARK_MASTER=spark://spark-master:7077
+      - SPARK_LOCAL_IP=spark-worker
+      - SPARK_WORKER_CORES=1
+      - SPARK_WORKER_MEMORY=1G
+      - SPARK_DRIVER_MEMORY=128m
+      - SPARK_EXECUTOR_MEMORY=256m
+      - SPARK_WORKER_WEBUI_PORT=9091
+    volumes:
+      - streaming-capstone:/shared/:ro
+    ports:
+      - "9091:9091"
+  spark-stop-bot:
+    image: gd/spark-stop-bot:latest
+    depends_on:
+      - spark-worker
+    environment:
+      - SPARK_MASTER_URL=spark://spark-master:7077
+#      - SPARK_SUBMIT_ARGS=
+#      - SPARK_APPLICATION_ARGS=
+#      - SPARK_APPLICATION_JAR_LOCATION=/application/stop-bot-1.0.0-SNAPSHOT-all.jar
+#      - SPARK_APPLICATION_MAIN_CLASS=com.gd.StopBotApp
+    volumes:
+      - streaming-capstone:/shared/
+networks:
+  default:
+    external:
+      name: streaming-capstone
+volumes:
+  streaming-capstone:
+#    external: true

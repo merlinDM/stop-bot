@@ -21,7 +21,8 @@ ext {
 group 'com.gd'
 version '1.0.0-SNAPSHOT'
 
-sourceCompatibility = 1.8
+sourceCompatibility = JavaVersion.VERSION_11
+targetCompatibility = JavaVersion.VERSION_1_8
 
 mainClassName = 'com.gd.StopBotApp'
 
@@ -33,20 +34,24 @@ repositories {
 }
 
 dependencies {
-    compile "org.scala-lang:scala-library:$scala"
-    compile "org.scala-lang:scala-reflect:$scala"
-    compile "org.scala-lang:scala-compiler:$scala"
+    shadow "org.scala-lang:scala-library:$scala"
+    shadow "org.scala-lang:scala-reflect:$scala"
+    shadow "org.scala-lang:scala-compiler:$scala"
 
     compile "com.typesafe.scala-logging:scala-logging_$scalaMajorVersion:$scalaLoggingVersion"
 
-    compile "org.apache.spark:spark-core_$scalaMajorVersion:$sparkVersion"
-    compile "org.apache.spark:spark-sql_$scalaMajorVersion:$sparkVersion"
-    compile "org.apache.spark:spark-streaming_$scalaMajorVersion:$sparkVersion"
-    compile "org.apache.spark:spark-sql-kafka-0-10_$scalaMajorVersion:$sparkVersion"
+    shadow "org.apache.spark:spark-core_$scalaMajorVersion:$sparkVersion"
+    shadow "org.apache.spark:spark-sql_$scalaMajorVersion:$sparkVersion"
+    shadow "org.apache.spark:spark-streaming_$scalaMajorVersion:$sparkVersion"
+    implementation("org.apache.spark:spark-sql-kafka-0-10_$scalaMajorVersion:$sparkVersion")
 
     testCompile "org.scalatest:scalatest_$scalaMajorVersion:$scalaTestVersion"
     testRuntime "org.pegdown:pegdown:$pegdownVersion"
     testRuntime "org.slf4j:slf4j-log4j12:$slf4jVersion"
+}
+
+configurations.testCompile {
+    extendsFrom configurations.shadow
 }
 
 // Disable all distributions
