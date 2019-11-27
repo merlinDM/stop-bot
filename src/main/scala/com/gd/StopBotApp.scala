@@ -20,8 +20,8 @@ object StopBotApp extends StrictLogging {
     val stopBotTransform = new StopBotTransform()
     val tDF = stopBotTransform.transform(sDF)
 
-    val sink = new ConsoleSink()
-    sink.init(timeoutMs = 120000)
+    val sink = new IgniteSink()
+    sink.init()
     sink.write(tDF)
 
     // Load Sink properties

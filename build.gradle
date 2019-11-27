@@ -7,8 +7,8 @@ plugins {
 }
 
 ext {
-    scala = '2.12.10'
-    scalaMajorVersion = '2.12'
+    scala = '2.11.8'
+    scalaMajorVersion = '2.11'
     scalaLoggingVersion = '3.9.2'
 
     scalaTestVersion = '3.0.1'
@@ -16,10 +16,12 @@ ext {
     slf4jVersion = "1.7.21"
 
     sparkVersion = '2.4.4'
+
+    igniteVersion = '2.7.6'
 }
 
 group 'com.gd'
-version '1.0.0-SNAPSHOT'
+version '1.0.3-SNAPSHOT'
 
 sourceCompatibility = JavaVersion.VERSION_11
 targetCompatibility = JavaVersion.VERSION_1_8
@@ -39,6 +41,14 @@ dependencies {
     shadow "org.scala-lang:scala-compiler:$scala"
 
     compile "com.typesafe.scala-logging:scala-logging_$scalaMajorVersion:$scalaLoggingVersion"
+    compile("org.apache.ignite:ignite-spark:$igniteVersion-SPARK-$sparkVersion") {
+        exclude group: "org.apache.spark"
+        exclude group: "org.apache.hadoop"
+    }
+    compile("org.apache.ignite:ignite-rest-http:$igniteVersion") {
+        exclude group: "com.fasterxml.jackson.core"
+    }
+//    compile "org.apache.ignite:ignite-scalar:$igniteVersion"
 
     shadow "org.apache.spark:spark-core_$scalaMajorVersion:$sparkVersion"
     shadow "org.apache.spark:spark-sql_$scalaMajorVersion:$sparkVersion"
@@ -61,6 +71,6 @@ shadowDistTar.enabled = false
 shadowDistZip.enabled = false
 
 // disable tests
-test.enabled = false
+//test.enabled = false
 
 apply from: 'docker.gradle'

@@ -8,7 +8,7 @@ class StopBotTransformTest extends FunSuite {
 
   private val dataFile: String = {
     val pwd = System.getProperty("user.dir")
-    val file = s"file:///$pwd/build/resources/test/"
+    val file = s"file:///$pwd/build/resources/test/data"
 
     file
   }
