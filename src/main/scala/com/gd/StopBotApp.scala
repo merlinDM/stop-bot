@@ -2,7 +2,6 @@ package com.gd
 
 import org.apache.spark.sql.SparkSession
 import com.typesafe.scalalogging.StrictLogging
-import org.apache.spark.sql.streaming.Trigger
 
 object StopBotApp extends StrictLogging {
 
@@ -24,21 +23,11 @@ object StopBotApp extends StrictLogging {
     sink.init()
     sink.write(tDF)
 
-    // Load Sink properties
-
-    // Define Transformations
-
-    // Start Application
-
-    // * Define what to do on shutdown
-
-    // * Define what to do on restart
-
   }
 
-  def setupSpark(): Unit = {
+  private def setupSpark(): Unit = {
     // Set up SparkStreaming
-    val spark = SparkSession
+    SparkSession
       .builder()
       .appName("Stop Bot")
       .getOrCreate()
