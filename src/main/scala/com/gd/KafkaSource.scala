@@ -7,17 +7,24 @@ import org.apache.spark.sql.{DataFrame, SparkSession}
 class KafkaSource() {
 
   private var sparkSession: SparkSession = _
-  var dataSchema: StructType = _
-  val json_string = "json_string"
-  val client_id = "client_id"
-  val parsed_json_string = "parsed_json_string"
+  var input_json_schema: StructType = _
+
+  val input_column_json = "json_string"
+  val output_column_key = "client_id"
+  val output_column_parsed_json = "parsed_json_string"
+
+  private val bootstrapServers = "kafka-00:9092"
+  private val topic = "test"
+  private val startingOffsets = "earliest"
+  private val retryInterval = 10000
+  private val offsetsPerBatch = 30
 
   def init(): Unit = {
     sparkSession = SparkSession
       .builder()
       .getOrCreate()
 
-    dataSchema = StructType(
+    input_json_schema = StructType(
       Array(
         StructField("url", StringType, nullable = false),
         StructField("ip", StringType, nullable = false),
@@ -31,42 +38,44 @@ class KafkaSource() {
     val sdf = sparkSession
       .readStream
       .format("kafka")
-      .option("kafka.bootstrap.servers", "kafka-00:9092")
-      .option("subscribe", "test")
-      .option("startingOffsets", "earliest")
-      .option("fetchOffset.retryIntervalMs", 10000)
-      .option("maxOffsetsPerTrigger", 30)
+      .option("kafka.bootstrap.servers", bootstrapServers)
+      .option("subscribe", topic)
+      .option("startingOffsets", startingOffsets)
+      .option("fetchOffset.retryIntervalMs", retryInterval)
+      .option("maxOffsetsPerTrigger", offsetsPerBatch)
       .load()
-      .selectExpr(s"CAST(key AS STRING) as $client_id", s"CAST(value AS STRING) as $json_string")
+      .selectExpr(s"CAST(key AS STRING) as $output_column_key", s"CAST(value AS STRING) as $input_column_json")
 
     val nested = unescapeIp(parseJson(sdf))
 
     nested
       .select(
-//        col(client_id),
-        col(s"$parsed_json_string.url"),
-        col(s"$parsed_json_string.ip"),
-        col(s"$parsed_json_string.event_time").cast(TimestampType),
-        col(s"$parsed_json_string.type")
+        col(s"$output_column_parsed_json.url"),
+        col(s"$output_column_parsed_json.ip"),
+        col(s"$output_column_parsed_json.event_time").cast(TimestampType),
+        col(s"$output_column_parsed_json.type")
       )
   }
 
   def parseJson(sdf: DataFrame): DataFrame = {
-    val translated_json_string = "translated_json_string"
-    val extracted_json_string = "extracted_json_string"
+    assert(sdf.schema.fieldNames.contains(input_column_json), "DataFrame")
+
+    val tmp_column_name = "extracted_json_string"
     sdf
-      .withColumn(translated_json_string, translate(col(json_string), "\\", ""))
-      .withColumn(extracted_json_string, regexp_extract(col(translated_json_string), "^\\\"(.+)\\\"", 1))
-      .withColumn(parsed_json_string, from_json(col(extracted_json_string), dataSchema))
-      .drop(translated_json_string, extracted_json_string)
+      .withColumn(tmp_column_name, translate(col(input_column_json), "\\", ""))
+      .withColumn(tmp_column_name, regexp_extract(col(tmp_column_name), "^\\\"(.+)\\\"", 1))
+      .withColumn(output_column_parsed_json, from_json(col(tmp_column_name), input_json_schema))
+      .drop(tmp_column_name)
   }
 
   def unescapeIp(sdf: DataFrame): DataFrame = {
-    val translated_client_id = "translated_client_id"
+
+
+    val tmp_column_name = "translated_client_id"
     sdf
-      .withColumn(translated_client_id, translate(col(client_id), "\\", ""))
-      .withColumn(translated_client_id, translate(col(translated_client_id), "\"", ""))
-      .withColumn(client_id, col(translated_client_id))
-      .drop(translated_client_id)
+      .withColumn(tmp_column_name, translate(col(output_column_key), "\\", ""))
+      .withColumn(tmp_column_name, translate(col(tmp_column_name), "\"", ""))
+      .withColumn(output_column_key, col(tmp_column_name))
+      .drop(tmp_column_name)
   }
 }

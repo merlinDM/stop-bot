@@ -24,7 +24,7 @@ class KafkaSourceTest extends FunSuite {
 
     val df = spark
       .createDataFrame(Seq(HelperCaseClass(sampleJsonString)))
-      .select(col("str").as(source.json_string))
+      .select(col("str").as(source.input_column_json))
 
     val res = source.parseJson(df).cache()
 
@@ -33,7 +33,7 @@ class KafkaSourceTest extends FunSuite {
     val test_result = "test_result"
     val errors = res
       .select(
-        isnull(col(source.parsed_json_string)).as(test_result))
+        isnull(col(source.output_column_parsed_json)).as(test_result))
       .where(col(test_result))
       .count()
 
@@ -47,7 +47,7 @@ class KafkaSourceTest extends FunSuite {
 
     val df = spark
       .createDataFrame(Seq(HelperCaseClass(sampleIpString)))
-      .select(col("str").as(source.client_id))
+      .select(col("str").as(source.output_column_key))
 
     val res = source.unescapeIp(df).cache()
 
@@ -56,7 +56,7 @@ class KafkaSourceTest extends FunSuite {
     val test_result = "test_result"
     val errors = res
       .select(
-        (col(source.client_id) =!= "127.0.0.1").as(test_result))
+        (col(source.output_column_key) =!= "127.0.0.1").as(test_result))
       .where(col(test_result))
       .count()
 
