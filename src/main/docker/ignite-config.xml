@@ -31,27 +31,6 @@
         http://www.springframework.org/schema/beans/spring-beans.xsd">
 
     <bean id="ignite.cfg" class="org.apache.ignite.configuration.IgniteConfiguration">
-        <property name="cacheConfiguration">
-            <!-- SharedRDD cache example configuration (Atomic mode). -->
-<!--            <bean class="org.apache.ignite.configuration.CacheConfiguration">-->
-<!--                &lt;!&ndash; Set a cache name. &ndash;&gt;-->
-<!--                <property name="name" value="sharedRDD"/>-->
-<!--                &lt;!&ndash; Set a cache mode. &ndash;&gt;-->
-<!--                <property name="cacheMode" value="PARTITIONED"/>-->
-<!--                &lt;!&ndash; Index Integer pairs used in the example. &ndash;&gt;-->
-<!--                <property name="indexedTypes">-->
-<!--                    <list>-->
-<!--                        <value>java.lang.Integer</value>-->
-<!--                        <value>java.lang.Integer</value>-->
-<!--                    </list>-->
-<!--                </property>-->
-<!--                &lt;!&ndash; Set atomicity mode. &ndash;&gt;-->
-<!--                <property name="atomicityMode" value="ATOMIC"/>-->
-<!--                &lt;!&ndash; Configure a number of backups. &ndash;&gt;-->
-<!--                <property name="backups" value="1"/>-->
-<!--            </bean>-->
-        </property>
-
         <!-- Explicitly configure TCP discovery SPI to provide list of initial nodes. -->
         <property name="discoverySpi">
             <bean class="org.apache.ignite.spi.discovery.tcp.TcpDiscoverySpi">

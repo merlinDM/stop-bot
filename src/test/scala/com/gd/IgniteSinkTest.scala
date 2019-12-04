@@ -48,15 +48,19 @@ class IgniteSinkTest extends FunSuite {
       .schema(dataSchema)
       .json(dataFile)
 
-    sdf
-      .write
-      .format(FORMAT_IGNITE)
-      .option(OPTION_CONFIG_FILE, configFile)
-      .option(OPTION_TABLE, "access_log")
-      .option(OPTION_CREATE_TABLE_PRIMARY_KEY_FIELDS, "ip, event_time")
-      .option(OPTION_CREATE_TABLE_PARAMETERS, "backups=1")
-      .mode(SaveMode.Overwrite) //Overwriting entire table.
-      .save()
+    val sink = new IgniteSink()
+    sink.init()
+    sink.write(sdf)
+
+//    sdf
+//      .write
+//      .format(FORMAT_IGNITE)
+//      .option(OPTION_CONFIG_FILE, configFile)
+//      .option(OPTION_TABLE, "access_log")
+//      .option(OPTION_CREATE_TABLE_PRIMARY_KEY_FIELDS, "ip, event_time")
+//      .option(OPTION_CREATE_TABLE_PARAMETERS, "backups=1")
+//      .mode(SaveMode.Overwrite) //Overwriting entire table.
+//      .save()
 
     import scala.collection.JavaConverters._
 
@@ -87,9 +91,9 @@ class IgniteSinkTest extends FunSuite {
     sink.init()
     sink.write(sdf)
 
-    while (true) {
-      Thread.sleep(10 * 60 * 1000)
-    }
+//    while (true) {
+//      Thread.sleep(10 * 60 * 1000)
+//    }
   }
 
   def setupServerAndData: Ignite = {
