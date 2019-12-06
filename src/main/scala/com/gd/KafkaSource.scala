@@ -53,7 +53,7 @@ class KafkaSource() {
         col(s"$output_column_parsed_json.url"),
         col(s"$output_column_parsed_json.ip"),
         col(s"$output_column_parsed_json.event_time").cast(TimestampType),
-        col(s"$output_column_parsed_json.type")
+        col(s"$output_column_parsed_json.type").as("event_type")
       )
   }
 

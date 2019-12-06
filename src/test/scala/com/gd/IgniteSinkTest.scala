@@ -52,16 +52,6 @@ class IgniteSinkTest extends FunSuite {
     sink.init()
     sink.write(sdf)
 
-//    sdf
-//      .write
-//      .format(FORMAT_IGNITE)
-//      .option(OPTION_CONFIG_FILE, configFile)
-//      .option(OPTION_TABLE, "access_log")
-//      .option(OPTION_CREATE_TABLE_PRIMARY_KEY_FIELDS, "ip, event_time")
-//      .option(OPTION_CREATE_TABLE_PARAMETERS, "backups=1")
-//      .mode(SaveMode.Overwrite) //Overwriting entire table.
-//      .save()
-
     import scala.collection.JavaConverters._
 
     ignite.configuration()
@@ -86,6 +76,7 @@ class IgniteSinkTest extends FunSuite {
       .readStream
       .schema(dataSchema)
       .json(dataFile)
+      .withColumnRenamed("type", "event_type")
 
     val sink = new IgniteSink()
     sink.init()

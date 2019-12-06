@@ -1,8 +1,13 @@
 package com.gd
 
+import java.util.Date
+
+import com.gd.model.{Ipfix, IpfixKey}
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.ignite.configuration.IgniteConfiguration
 import org.apache.ignite.spark.IgniteDataFrameSettings._
+import org.apache.ignite.spi.discovery.tcp.TcpDiscoverySpi
+import org.apache.ignite.spi.discovery.tcp.ipfinder.multicast.TcpDiscoveryMulticastIpFinder
 import org.apache.ignite.{Ignite, IgniteCache, Ignition}
 import org.apache.spark.sql._
 
@@ -20,8 +25,11 @@ class IgniteSink
   private val igniteStreamingCache = "ignite-cassandra"
   private val igniteConfigBean = "ignite.cfg"
   private val igniteInstanceName = "df-writer-client"
+  private var igniteServerHost = "ignite-00:47500..47509"
 
-  def init(timeoutMs: Long = 20000, configFileLocation: String = "build/resources/test/ignite-config.xml"): Unit = {
+  def init(timeoutMs: Long = 20000,
+           configFileLocation: String = "build/resources/test/ignite-config.xml",
+           igniteHost: String = "ignite-00:47500..47509"): Unit = {
 
     spark = SparkSession.builder().getOrCreate()
 
@@ -29,6 +37,8 @@ class IgniteSink
 
     igniteConfigFile = configFileLocation
     // "/shared/ignite-config.xml"
+
+    igniteServerHost = igniteHost
   }
 
   def write(df: DataFrame): Unit = {
@@ -56,7 +66,8 @@ class IgniteSink
       igniteConfigFile,
       igniteStreamingCache,
       igniteConfigBean,
-      igniteInstanceName)
+      igniteInstanceName,
+      igniteServerHost)
 
     val query = dataFrame
       .writeStream
@@ -74,20 +85,37 @@ class IgniteSink
   private def streamingWriter(configFile: String,
                               cacheName: String,
                               configBeanName: String,
-                              instanceName: String
+                              instanceName: String,
+                              igniteHost: String
                              ): ForeachWriter[Row] = {
-    new ForeachWriter[Row] {
-      @transient private var ignite: Ignite = _
+    new ForeachWriter[Row] with StrictLogging {
+      @transient private lazy val ignite: Ignite = setupIgnite()
 
-      override def open(partitionId: Long, version: Long): Boolean = {
+      private def setupIgnite() = {
+
+        logger.debug("Setting up ignite client")
 
         val loadedCfg: IgniteConfiguration = Ignition.loadSpringBean[IgniteConfiguration](configFile, configBeanName)
+
+        val addresses = new java.util.ArrayList[String](2)
+        addresses.add(igniteHost)
+
+        val ipFinder = new TcpDiscoveryMulticastIpFinder
+        ipFinder.setAddresses(addresses)
+
+        val spi = new TcpDiscoverySpi()
+        spi.setIpFinder(ipFinder)
 
         loadedCfg.setIgniteInstanceName(instanceName)
 
         loadedCfg.setClientMode(true)
 
-        ignite = Ignition.getOrStart(loadedCfg)
+        val cl = Ignition.getOrStart(loadedCfg)
+
+        cl
+      }
+
+      override def open(partitionId: Long, version: Long): Boolean = {
 
         // TODO: use partitionId and version for recovery purposes
 
@@ -95,10 +123,19 @@ class IgniteSink
       }
 
       override def process(value: Row): Unit = {
-        val cache: IgniteCache[String, String] = ignite.getOrCreateCache[String, String](cacheName)
 
-        cache.put(value.getAs[String]("ip"), value.getAs[String]("url"))
-      }
+      val cache: IgniteCache[IpfixKey, Ipfix] = ignite.getOrCreateCache[IpfixKey, Ipfix](cacheName)
+
+      val v = new Ipfix()
+      v.setIp(value.getAs[String]("ip"))
+      v.setUrl(value.getAs[String]("url"))
+      v.setEventTime(value.getAs[Date]("event_time"))
+      v.setEventType(value.getAs[String]("event_type"))
+
+      val k = new IpfixKey(v)
+
+      cache.put(k, v)
+    }
 
       override def close(errorOrNull: Throwable): Unit = {
         Try(errorOrNull) match {
@@ -110,7 +147,6 @@ class IgniteSink
 
         logger.info("Shutting down Ignite client.")
 
-        ignite.close()
       }
     }
   }

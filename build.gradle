@@ -21,10 +21,10 @@ ext {
 }
 
 group 'com.gd'
-version '1.0.3-SNAPSHOT'
+version '1.0.4-SNAPSHOT'
 
 //sourceCompatibility = JavaVersion.VERSION_11
-//targetCompatibility = JavaVersion.VERSION_1_8
+targetCompatibility = JavaVersion.VERSION_1_8
 
 mainClassName = 'com.gd.StopBotApp'
 
@@ -48,20 +48,31 @@ dependencies {
     compile("org.apache.ignite:ignite-rest-http:$igniteVersion") {
         exclude group: "com.fasterxml.jackson.core"
     }
-//    compile "org.apache.ignite:ignite-scalar:$igniteVersion"
 
     shadow "org.apache.spark:spark-core_$scalaMajorVersion:$sparkVersion"
     shadow "org.apache.spark:spark-sql_$scalaMajorVersion:$sparkVersion"
     shadow "org.apache.spark:spark-streaming_$scalaMajorVersion:$sparkVersion"
     implementation("org.apache.spark:spark-sql-kafka-0-10_$scalaMajorVersion:$sparkVersion")
 
+    implementation "org.apache.ignite:ignite-cassandra-store:${igniteVersion}"
+    implementation "org.apache.ignite:ignite-cassandra-serializers:${igniteVersion}"
+    implementation "com.datastax.cassandra:cassandra-driver-core:3.6.0"
+
     testCompile "org.scalatest:scalatest_$scalaMajorVersion:$scalaTestVersion"
     testRuntime "org.pegdown:pegdown:$pegdownVersion"
     testRuntime "org.slf4j:slf4j-log4j12:$slf4jVersion"
 }
+//configurations.compile {
+//    exclude group: 'org.slf4j', module: 'log4j-over-slf4j'
+//    exclude group: 'com.typesafe.scala-logging', module: 'scala-logging-slf4j'
+//}
 
 configurations.testCompile {
     extendsFrom configurations.shadow
+}
+
+shadowJar {
+    mergeServiceFiles()
 }
 
 // Disable all distributions
@@ -72,5 +83,6 @@ shadowDistZip.enabled = false
 
 // disable tests
 //test.enabled = false
+test.reports.html.enabled = false
 
 apply from: 'docker.gradle'
