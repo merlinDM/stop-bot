@@ -1,9 +1,9 @@
 package com.gd
 
-import org.apache.spark.sql.SparkSession
 import com.typesafe.scalalogging.StrictLogging
+import org.apache.spark.sql.SparkSession
 
-object StopBotApp extends StrictLogging {
+object KafkaCheckApp extends StrictLogging {
 
   def main(args: Array[String]): Unit = {
     // Set up Logging
@@ -11,13 +11,12 @@ object StopBotApp extends StrictLogging {
 
     setupSpark()
 
-    // Load Source properties
     val source = new KafkaSource()
     source.init()
     val sDF = source.read()
 
-    val sink = new IgniteSink()
-    sink.init(timeoutMs = None, configFileLocation = "ignite-client-config.xml")
+    val sink = new ConsoleSink()
+    sink.init()
     sink.write(sDF)
 
   }

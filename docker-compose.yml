@@ -1,12 +1,18 @@
 version: '3.7'
 services:
+  cassandra-00:
+    image: gd/cassandra
+  ignite-00:
+    image: gd/ignite
+    depends_on:
+      - cassandra-00
   spark-master:
     image: gd/spark-master:latest
     ports:
       - "9090:9090"
 #      - "7077:7077"
     volumes:
-      - streaming-capstone:/shared/:ro
+      - stop-bot:/shared/:ro
     environment:
       - SPARK_LOCAL_IP=spark-master
       - SPARK_MASTER_WEBUI_PORT=9090
@@ -23,7 +29,7 @@ services:
       - SPARK_EXECUTOR_MEMORY=256m
       - SPARK_WORKER_WEBUI_PORT=9091
     volumes:
-      - streaming-capstone:/shared/:ro
+      - stop-bot:/shared/:ro
     ports:
       - "9091:9091"
   spark-stop-bot:
@@ -35,13 +41,11 @@ services:
 #      - SPARK_SUBMIT_ARGS=
 #      - SPARK_APPLICATION_ARGS=
 #      - SPARK_APPLICATION_JAR_LOCATION=/application/stop-bot-1.0.0-SNAPSHOT-all.jar
-#      - SPARK_APPLICATION_MAIN_CLASS=com.gd.StopBotApp
+      - SPARK_APPLICATION_MAIN_CLASS=com.gd.IgniteCheckApp
     volumes:
-      - streaming-capstone:/shared/
+      - stop-bot:/shared/
 networks:
   default:
-    external:
-      name: streaming-capstone
+    name: stop-bot
 volumes:
-  streaming-capstone:
-#    external: true
+  stop-bot:

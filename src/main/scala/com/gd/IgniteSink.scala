@@ -27,13 +27,13 @@ class IgniteSink
   private val igniteInstanceName = "df-writer-client"
   private var igniteServerHost = "ignite-00:47500..47509"
 
-  def init(timeoutMs: Long = 20000,
+  def init(timeoutMs: Option[Long] = Some(20000l),
            configFileLocation: String = "build/resources/test/ignite-config.xml",
            igniteHost: String = "ignite-00:47500..47509"): Unit = {
 
     spark = SparkSession.builder().getOrCreate()
 
-    this.timeoutMs = Some(timeoutMs)
+    this.timeoutMs = timeoutMs
 
     igniteConfigFile = configFileLocation
     // "/shared/ignite-config.xml"
@@ -80,6 +80,8 @@ class IgniteSink
       case None =>
         query.awaitTermination()
     }
+
+    Ignition.stop(igniteInstanceName, false)
   }
 
   private def streamingWriter(configFile: String,
@@ -145,7 +147,7 @@ class IgniteSink
             logger.error("Received error in Ignite writer", exception)
         }
 
-        logger.info("Shutting down Ignite client.")
+        // we do not stop Ignite client here since this method is called each time after processing new partition.
 
       }
     }
