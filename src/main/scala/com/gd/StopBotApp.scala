@@ -1,15 +1,16 @@
 package com.gd
 
-import org.apache.spark.sql.SparkSession
 import com.typesafe.scalalogging.StrictLogging
+import org.apache.spark.sql.SparkSession
 
-object StopBotApp extends StrictLogging {
+object StopBotApp extends StrictLogging with SetupSpark {
+
+  override protected val appName: String = "Stop Bot App"
+  override protected val spark: SparkSession = setupSpark()
 
   def main(args: Array[String]): Unit = {
     // Set up Logging
     logger.info("Starting the application")
-
-    setupSpark()
 
     // Load Source properties
     val source = new KafkaSource()
@@ -20,14 +21,6 @@ object StopBotApp extends StrictLogging {
     sink.init(timeoutMs = None, configFileLocation = "ignite-client-config.xml")
     sink.write(sDF)
 
-  }
-
-  private def setupSpark(): Unit = {
-    // Set up SparkStreaming
-    SparkSession
-      .builder()
-      .appName("Stop Bot")
-      .getOrCreate()
   }
 
 }

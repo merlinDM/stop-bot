@@ -3,13 +3,14 @@ package com.gd
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.spark.sql.SparkSession
 
-object IgniteCheckApp extends StrictLogging {
+object IgniteCheckApp extends StrictLogging with SetupSpark  {
+
+  override protected val appName: String = "Ignite Integration Test"
+  override protected val spark: SparkSession = setupSpark()
 
   def main(args: Array[String]): Unit = {
     // Set up Logging
     logger.info("Starting the application")
-
-    setupSpark()
 
     // Load Source properties
     val source = new JsonFileSource()
@@ -20,14 +21,6 @@ object IgniteCheckApp extends StrictLogging {
     sink.init(configFileLocation = "ignite-client-config.xml")
     sink.write(sDF)
 
-  }
-
-  private def setupSpark(): Unit = {
-    // Set up SparkStreaming
-    SparkSession
-      .builder()
-      .appName("Stop Bot")
-      .getOrCreate()
   }
 
 }
