@@ -1,21 +1,22 @@
 package com.gd
 
+import org.apache.spark.sql.streaming.StreamingQuery
 import org.apache.spark.sql.{DataFrame, SparkSession}
 
 class ConsoleSink {
   private var sparkSession: SparkSession = _
   private var timeoutMs: Option[Long] = None
 
-  def init(timeoutMs: Long = 20000): Unit = {
+  def init(maybeTimeoutMs: Option[Long] = Some(20000L)): Unit = {
     sparkSession = SparkSession
       .builder()
       .getOrCreate()
 
-    this.timeoutMs = Some(timeoutMs)
+    this.timeoutMs = maybeTimeoutMs
   }
 
   def write(sdf: DataFrame) = {
-    val query = sdf.writeStream
+    val query: StreamingQuery = sdf.writeStream
       .outputMode("update")
       .format("console")
       .option("truncate", "false")
@@ -27,6 +28,8 @@ class ConsoleSink {
       case None =>
         query.awaitTermination()
     }
+
+
   }
 
 }

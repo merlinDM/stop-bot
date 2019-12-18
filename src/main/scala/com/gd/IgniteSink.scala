@@ -57,7 +57,7 @@ class IgniteSink
       .option(OPTION_TABLE, igniteBatchTable)
       .option(OPTION_CREATE_TABLE_PRIMARY_KEY_FIELDS, "ip, event_time")
       .option(OPTION_CREATE_TABLE_PARAMETERS, "backups=1")
-      .mode(SaveMode.Append) //Overwriting entire table.
+      .mode(SaveMode.Append)
       .save()
   }
 

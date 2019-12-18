@@ -17,9 +17,12 @@ object StopBotApp extends StrictLogging with SetupSpark {
     source.init()
     val sDF = source.read()
 
+    val transform = new StopBotTransform()
+    val tDF = transform.transform(sDF)
+
     val sink = new IgniteSink()
     sink.init(timeoutMs = None, configFileLocation = "ignite-client-config.xml")
-    sink.write(sDF)
+    sink.write(tDF)
 
   }
 

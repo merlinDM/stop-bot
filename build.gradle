@@ -62,12 +62,11 @@ dependencies {
     testRuntime "org.pegdown:pegdown:$pegdownVersion"
     testRuntime "org.slf4j:slf4j-log4j12:$slf4jVersion"
 }
-//configurations.compile {
-//    exclude group: 'org.slf4j', module: 'log4j-over-slf4j'
-//    exclude group: 'com.typesafe.scala-logging', module: 'scala-logging-slf4j'
-//}
 
 configurations.testCompile {
+    extendsFrom configurations.shadow
+}
+configurations.runtime {
     extendsFrom configurations.shadow
 }
 
