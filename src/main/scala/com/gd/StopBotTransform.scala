@@ -5,12 +5,37 @@ import org.apache.spark.sql.functions._
 
 class StopBotTransform {
 
-  def transform(sdf: DataFrame): DataFrame = {
-    sdf
-      .withWatermark("event_time", "2 minutes")
-      .groupBy(col("ip"), window(col("event_time"), "10 seconds", "10 seconds"))
-      .agg(min("event_time"), max("event_time"), count("*").as("num_of_requests"))
-      .withColumn("is_bot", col("num_of_requests") > 20)
+  def init(): Unit = {
+
   }
 
+  def transform(sdf: DataFrame): DataFrame = {
+    throw new NotImplementedError("This method is going to be removed.")
+  }
+
+  def aggregate(sdf: DataFrame): DataFrame = {
+    val aggregatedDF = sdf
+      .withWatermark("event_time", "10 minutes")
+      .groupBy(col("ip"), window(col("event_time"), "10 seconds", "10 seconds"))
+      .agg(count("*").as("num_of_requests"))
+      .withColumn("is_bot", col("num_of_requests") >= 20)
+      .withColumn("window_start", col("window").getField("start"))
+      .withColumn("window_end", col("window").getField("end"))
+      .drop("window")
+    aggregatedDF
+  }
+
+  def join(rawDF: DataFrame, aggregatedDF: DataFrame) = {
+    val joinedDF = rawDF.as("raw") //.withColumnRenamed("ip", "rawIp")
+      .join(
+        aggregatedDF.as("agg"),
+        expr(
+          """
+            |raw.ip = agg.ip AND
+            |raw.event_time BETWEEN agg.window_start AND agg.window_end
+            |""".stripMargin),
+        "inner")
+
+    joinedDF
+  }
 }

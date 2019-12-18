@@ -1,8 +1,12 @@
 package com.gd
 
-import org.apache.spark.sql.SparkSession
-import org.apache.spark.sql.types.{StringType, StructField, StructType, TimestampType}
+import java.sql.Timestamp
+
+import org.apache.spark.sql.{DataFrame, SparkSession}
+import org.apache.spark.sql.types.{DataType, StringType, StructField, StructType, TimestampType}
+import org.apache.spark.sql.functions._
 import org.scalatest.FunSuite
+import org.apache.spark.sql.execution.streaming.{MemoryStream, Offset}
 
 class StopBotTransformTest extends FunSuite {
 
@@ -29,36 +33,64 @@ class StopBotTransformTest extends FunSuite {
     .config("spark.local.dir", "/tmp/spark")
     .getOrCreate()
 
-  spark.conf.getAll.foreach {
-    case (k, v) =>
-      println(s"$k => $v")
-  }
+  private val helper = new IpfixHelper(spark)
 
-  test("test transformation logic") {
-    import org.apache.spark.sql.streaming.Trigger
-    import scala.concurrent.duration._
-
-    val timeoutMs = 1000 * 30
-
-    val sdf = spark
-      .readStream
-      .schema(dataSchema)
-      .json(dataFile)
+  test("Data Aggregation") {
+    val (ms, memoryDF) = helper.setupMemoryStream
 
     val transformer = new StopBotTransform()
+    transformer.init()
+    val aggregatedDF = transformer.aggregate(memoryDF)
 
-    val transformedSDF = transformer.transform(sdf)
-
-    val query = transformedSDF
+    val table = "aggregationQuery"
+    val query = aggregatedDF
       .writeStream
-      .outputMode("update")
-      .format("console")
-      .option("truncate", "false")
-      .trigger(Trigger.ProcessingTime(timeoutMs.millis))
+      .format("memory")
+      .queryName(table)
       .start()
 
-    query.awaitTermination(timeoutMs)
+    var currentOffset: Offset = null
+    while (!helper.isEmpty) {
+      currentOffset = helper.pushData()
+    }
 
+    query.processAllAvailable()
+    spark.sqlContext
+      .table(table)
+      .orderBy(col("window_start").asc)
+      .show(numRows = 100, truncate = false)
+
+    helper.commitOffsets(currentOffset)
+  }
+
+  test("Streams Join") {
+    val (ms, memoryDF) = helper.setupMemoryStream
+
+    val transformer = new StopBotTransform()
+    transformer.init()
+    val aggregatedDF = transformer.aggregate(memoryDF)
+    val joinedDF = transformer.join(memoryDF, aggregatedDF)
+
+    val table = "joinedQuery"
+    val query = joinedDF
+      .writeStream
+      .format("memory")
+      .queryName(table)
+      .start()
+
+    var currentOffset: Offset = null
+    while (!helper.isEmpty) {
+      currentOffset = helper.pushData()
+    }
+
+    query.processAllAvailable()
+    spark.sqlContext
+      .table(table)
+      .orderBy(col("window_start").asc)
+      .show(numRows = 100, truncate = false)
+
+    helper.commitOffsets(currentOffset)
+    spark.sqlContext.dropTempTable(table)
   }
 
 }
