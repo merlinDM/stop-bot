@@ -1,33 +1,34 @@
 package com.gd
 
-import java.sql.Timestamp
-
-import org.apache.spark.sql.{DataFrame, SparkSession}
 import org.apache.spark.sql.execution.streaming.{LongOffset, MemoryStream, Offset}
 import org.apache.spark.sql.functions.col
 import org.apache.spark.sql.types.TimestampType
+import org.apache.spark.sql.{DataFrame, SparkSession}
 
-import scala.collection.immutable.Queue
+import scala.collection.mutable
 
 class IpfixHelper(spark: SparkSession) {
 
   private var ipfixMS: MemoryStream[Ipfix] = _
 
-  def setupMemoryStream: (MemoryStream[Ipfix], DataFrame) = {
+  def setupMemoryStream: DataFrame = {
     import spark.implicits.newProductEncoder
     implicit val sql = spark.sqlContext
+
     val ms = MemoryStream[Ipfix]
-    val memoryDF = ms.toDF()
+
+    val df = ms.toDF()
       .withColumnRenamed("tpe", "event_type")
       .withColumnRenamed("eventTime", "event_time")
       .withColumn("event_time", col("event_time").cast(TimestampType))
+
     ipfixMS = ms
-    (ms, memoryDF)
+
+    df
   }
 
   def pushData(): Offset = {
-    val (head, tail) = batches.dequeue
-    batches = tail
+    val head = batches.dequeue
     ipfixMS.addData(head)
   }
 
@@ -37,7 +38,7 @@ class IpfixHelper(spark: SparkSession) {
 
   def isEmpty = batches.isEmpty
 
-  private var batches: Queue[Array[Ipfix]] = Queue(
+  private val batches: mutable.Queue[Array[Ipfix]] = mutable.Queue(
     // not bot
     Array(
       Ipfix(url = "https://example-081.com/", ip = "192.241.194.9", tpe = "click", eventTime = 1575987219)
@@ -110,4 +111,3 @@ class IpfixHelper(spark: SparkSession) {
 }
 
 case class Ipfix(url: String, ip: String, tpe: String, eventTime: Long)
-case class AggregatedIpfix(ip: String, num_of_requests: Long, is_bot: Boolean, window_start: Timestamp, window_end: Timestamp)

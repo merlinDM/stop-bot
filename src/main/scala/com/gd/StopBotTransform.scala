@@ -32,10 +32,12 @@ class StopBotTransform {
         expr(
           """
             |raw.ip = agg.ip AND
-            |raw.event_time BETWEEN agg.window_start AND agg.window_end
+            |raw.event_time >= agg.window_start AND raw.event_time < agg.window_end
             |""".stripMargin),
         "inner")
 
-    joinedDF
+    val fields = (rawDF.schema.fieldNames.map(f => s"raw.$f") ++ Array("agg.is_bot"))
+      .map(col _)
+    joinedDF.select(fields: _*)
   }
 }

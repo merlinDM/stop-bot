@@ -21,8 +21,8 @@ class StopBotTransformTest extends FunSuite {
     Array(
       StructField("url", StringType, nullable = false),
       StructField("ip", StringType, nullable = false),
-      StructField("event_time", TimestampType, nullable = true),
-      StructField("type", StringType, nullable = true)
+      StructField("event_type", StringType, nullable = true),
+      StructField("event_time", TimestampType, nullable = true)
     )
   )
 
@@ -33,10 +33,19 @@ class StopBotTransformTest extends FunSuite {
     .config("spark.local.dir", "/tmp/spark")
     .getOrCreate()
 
-  private val helper = new IpfixHelper(spark)
+  private def disableLogs = {
+    import org.apache.log4j.Logger
+    import org.apache.log4j.Level
+
+    Logger.getLogger("org.apache.spark").setLevel(Level.OFF)
+    Logger.getLogger("akka").setLevel(Level.OFF)
+  }
+
+  disableLogs
 
   test("Data Aggregation") {
-    val (ms, memoryDF) = helper.setupMemoryStream
+    val helper = new IpfixHelper(spark)
+    val memoryDF = helper.setupMemoryStream
 
     val transformer = new StopBotTransform()
     transformer.init()
@@ -60,11 +69,18 @@ class StopBotTransformTest extends FunSuite {
       .orderBy(col("window_start").asc)
       .show(numRows = 100, truncate = false)
 
+    val rows = spark.sqlContext
+      .table(table)
+      .count()
+
+    assert(rows == 5, "Aggregation result rows")
+
     helper.commitOffsets(currentOffset)
   }
 
   test("Streams Join") {
-    val (ms, memoryDF) = helper.setupMemoryStream
+    val helper = new IpfixHelper(spark)
+    val memoryDF = helper.setupMemoryStream
 
     val transformer = new StopBotTransform()
     transformer.init()
@@ -86,8 +102,14 @@ class StopBotTransformTest extends FunSuite {
     query.processAllAvailable()
     spark.sqlContext
       .table(table)
-      .orderBy(col("window_start").asc)
+      .orderBy(col("event_time").asc)
       .show(numRows = 100, truncate = false)
+
+    val rows = spark.sqlContext
+      .table(table)
+      .count()
+
+    assert(rows == 43, "There should be the same amount of rows in joined and original tables.")
 
     helper.commitOffsets(currentOffset)
     spark.sqlContext.dropTempTable(table)
