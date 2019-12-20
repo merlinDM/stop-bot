@@ -1,7 +1,6 @@
 package com.gd
 
 import org.apache.spark.sql.SparkSession
-import org.apache.spark.sql.execution.streaming.Offset
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types.{StringType, StructField, StructType, TimestampType}
 import org.scalatest.FunSuite
@@ -41,7 +40,7 @@ class StopBotTransformTest extends FunSuite {
   disableLogs
 
   test("Data Aggregation") {
-    val helper = new IpfixHelper(spark)
+    val helper = new helpers.IpfixHelper(spark)
     val memoryDF = helper.setupMemoryStream
 
     val transformer = new StopBotTransform()
@@ -55,9 +54,8 @@ class StopBotTransformTest extends FunSuite {
       .queryName(table)
       .start()
 
-    var currentOffset: Offset = null
     while (!helper.isEmpty) {
-      currentOffset = helper.pushData()
+      helper.pushData()
     }
 
     query.processAllAvailable()
@@ -69,27 +67,23 @@ class StopBotTransformTest extends FunSuite {
       .orderBy(col("window_start").asc)
       .show(numRows = 100, truncate = false)
 
-    val rows = resDF
-      .count()
+    val expectedDataHelper = new helpers.AggregatedIpfixHelper(spark)
+    val expectedDF = expectedDataHelper.staticDF
 
-    assert(rows == 5, "Aggregation result rows")
+    assert(resDF.except(expectedDF).isEmpty, "Aggregation result should be as expected.")
 
-    val notBots = resDF
-      .where("not is_bot")
-      .count()
-
-    assert(notBots == 3, "Number of not bot records in aggregation based on number of rows")
-
-    helper.commitOffsets(currentOffset)
+    helper.commitOffsets()
   }
 
   test("Streams Join") {
-    val helper = new IpfixHelper(spark)
+    val helper = new helpers.IpfixHelper(spark)
     val memoryDF = helper.setupMemoryStream
+
+    val aggregatedDataHelper = new helpers.AggregatedIpfixHelper(spark)
+    val aggregatedDF = aggregatedDataHelper.setupMemoryStream
 
     val transformer = new StopBotTransform()
     transformer.init()
-    val aggregatedDF = transformer.aggregate(memoryDF)
     val joinedDF = transformer.join(memoryDF, aggregatedDF)
 
     val table = "joinedQuery"
@@ -99,9 +93,12 @@ class StopBotTransformTest extends FunSuite {
       .queryName(table)
       .start()
 
-    var currentOffset: Offset = null
-    while (!helper.isEmpty) {
-      currentOffset = helper.pushData()
+    while (!helper.isEmpty || !aggregatedDataHelper.isEmpty) {
+      if (!helper.isEmpty)
+        helper.pushData()
+
+      if (!aggregatedDataHelper.isEmpty)
+        aggregatedDataHelper.pushData()
     }
 
     query.processAllAvailable()
@@ -113,19 +110,14 @@ class StopBotTransformTest extends FunSuite {
       .orderBy(col("event_time").asc)
       .show(numRows = 100, truncate = false)
 
-    val rows = resDF
-      .count()
+    val expectedDataHelper = new helpers.IpfixResultHelper(spark)
+    val expectedDF = expectedDataHelper.staticDF
 
-    assert(rows == 43, "There should be the same amount of rows in joined and original tables.")
+    // Aggregation doesn't know anything about 10 min timeout.
+    assert(resDF.except(expectedDF).where("unix_timestamp(event_time) = 1575987320").count() == 1)
 
-    val notBots = resDF
-      .where("not is_bot")
-      .count()
-
-    assert(notBots == 3, "Number of not bot records based on number of rows")
-
-    helper.commitOffsets(currentOffset)
-    spark.sqlContext.dropTempTable(table)
+    helper.commitOffsets()
+    aggregatedDataHelper.commitOffsets()
   }
 
 }
