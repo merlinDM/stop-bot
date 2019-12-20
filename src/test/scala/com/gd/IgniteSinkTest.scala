@@ -3,8 +3,8 @@ package com.gd
 import org.apache.ignite.spark.IgniteDataFrameSettings._
 import org.apache.ignite.{Ignite, Ignition}
 import org.apache.log4j.{Level, Logger}
+import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.types.{StringType, StructField, StructType, TimestampType}
-import org.apache.spark.sql.{SaveMode, SparkSession}
 import org.scalatest.FunSuite
 
 class IgniteSinkTest extends FunSuite {

@@ -4,8 +4,6 @@ import java.sql.Timestamp
 
 import org.apache.spark.sql.{DataFrame, SparkSession}
 
-import scala.collection.mutable
-
 class IpfixResultHelper(spark: SparkSession) {
 
   def staticDF: DataFrame = {

@@ -1,8 +1,8 @@
 package com.gd
 
 import org.apache.spark.sql.SparkSession
-import org.scalatest.FunSuite
 import org.apache.spark.sql.functions.{col, isnull}
+import org.scalatest.FunSuite
 
 class KafkaSourceTest extends FunSuite {
 

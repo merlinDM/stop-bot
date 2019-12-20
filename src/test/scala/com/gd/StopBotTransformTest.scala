@@ -114,7 +114,7 @@ class StopBotTransformTest extends FunSuite {
     val expectedDF = expectedDataHelper.staticDF
 
     // Aggregation doesn't know anything about 10 min timeout.
-    assert(resDF.except(expectedDF).where("unix_timestamp(event_time) = 1575987320").count() == 1)
+    assert(resDF.except(expectedDF).where("not unix_timestamp(event_time) = 1575987320").count() == 0)
 
     helper.commitOffsets()
     aggregatedDataHelper.commitOffsets()

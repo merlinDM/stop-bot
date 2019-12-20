@@ -3,8 +3,6 @@ package com.gd.helpers
 import java.sql.Timestamp
 
 import org.apache.spark.sql.execution.streaming.{LongOffset, MemoryStream, Offset}
-import org.apache.spark.sql.functions.col
-import org.apache.spark.sql.types.TimestampType
 import org.apache.spark.sql.{DataFrame, SparkSession}
 
 import scala.collection.mutable
