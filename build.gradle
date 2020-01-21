@@ -18,6 +18,9 @@ ext {
     sparkVersion = '2.4.4'
 
     igniteVersion = '2.7.6'
+
+    cassandraVersion = '3.0.19'
+    cassandraConnectorVersion = '2.4.2'
 }
 
 group 'com.gd'
@@ -57,10 +60,19 @@ dependencies {
     implementation "org.apache.ignite:ignite-cassandra-store:${igniteVersion}"
     implementation "org.apache.ignite:ignite-cassandra-serializers:${igniteVersion}"
     implementation "com.datastax.cassandra:cassandra-driver-core:3.6.0"
+    implementation "com.datastax.spark:spark-cassandra-connector_$scalaMajorVersion:$cassandraConnectorVersion"
 
     testCompile "org.scalatest:scalatest_$scalaMajorVersion:$scalaTestVersion"
     testRuntime "org.pegdown:pegdown:$pegdownVersion"
     testRuntime "org.slf4j:slf4j-log4j12:$slf4jVersion"
+
+    testCompile ("com.datastax.spark:spark-cassandra-connector-embedded_$scalaMajorVersion:$cassandraConnectorVersion") {
+        exclude group: 'com.datastax.cassandra', module: 'cassandra-driver-core'
+    }
+    testCompile "org.scalatest:scalatest_$scalaMajorVersion:$scalaTestVersion"
+    testCompile("org.apache.cassandra:cassandra-all:$cassandraVersion") {
+        exclude group: 'org.slf4j', module: 'log4j-over-slf4j'  // Excluded to allow for Cassandra to run embedded
+    }
 }
 
 configurations.testCompile {
