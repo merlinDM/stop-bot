@@ -3,5 +3,6 @@ build/
 .gradle/
 .idea/
 spark-warehouse/
+ignite/
 
 .DS_Store
