@@ -12,7 +12,7 @@ ext {
     scalaLoggingVersion = '3.9.2'
 
     scalaTestVersion = '3.0.1'
-    pegdownVersion = '1.4.2'
+    pegdownVersion = '1.6.0'
     slf4jVersion = "1.7.21"
 
     sparkVersion = '2.4.4'
@@ -21,6 +21,7 @@ ext {
 
     cassandraVersion = '3.0.19'
     cassandraConnectorVersion = '2.4.2'
+    cassandraDriverVerion = '3.6.0'
 }
 
 group 'com.gd'
@@ -48,31 +49,23 @@ dependencies {
         exclude group: "org.apache.spark"
         exclude group: "org.apache.hadoop"
     }
-    compile("org.apache.ignite:ignite-rest-http:$igniteVersion") {
-        exclude group: "com.fasterxml.jackson.core"
-    }
 
     shadow "org.apache.spark:spark-core_$scalaMajorVersion:$sparkVersion"
     shadow "org.apache.spark:spark-sql_$scalaMajorVersion:$sparkVersion"
     shadow "org.apache.spark:spark-streaming_$scalaMajorVersion:$sparkVersion"
     implementation("org.apache.spark:spark-sql-kafka-0-10_$scalaMajorVersion:$sparkVersion")
 
-    implementation "org.apache.ignite:ignite-cassandra-store:${igniteVersion}"
-    implementation "org.apache.ignite:ignite-cassandra-serializers:${igniteVersion}"
-    implementation "com.datastax.cassandra:cassandra-driver-core:3.6.0"
-    implementation "com.datastax.spark:spark-cassandra-connector_$scalaMajorVersion:$cassandraConnectorVersion"
+    implementation "com.datastax.cassandra:cassandra-driver-core:$cassandraDriverVerion"
+    implementation("com.datastax.spark:spark-cassandra-connector_$scalaMajorVersion:$cassandraConnectorVersion") {
+        exclude group: "org.scala-lang"
+        exclude group: 'org.apache.spark'
+    }
 
     testCompile "org.scalatest:scalatest_$scalaMajorVersion:$scalaTestVersion"
     testRuntime "org.pegdown:pegdown:$pegdownVersion"
     testRuntime "org.slf4j:slf4j-log4j12:$slf4jVersion"
 
-    testCompile ("com.datastax.spark:spark-cassandra-connector-embedded_$scalaMajorVersion:$cassandraConnectorVersion") {
-        exclude group: 'com.datastax.cassandra', module: 'cassandra-driver-core'
-    }
     testCompile "org.scalatest:scalatest_$scalaMajorVersion:$scalaTestVersion"
-    testCompile("org.apache.cassandra:cassandra-all:$cassandraVersion") {
-        exclude group: 'org.slf4j', module: 'log4j-over-slf4j'  // Excluded to allow for Cassandra to run embedded
-    }
 }
 
 configurations.testCompile {
@@ -83,6 +76,7 @@ configurations.runtime {
 }
 
 shadowJar {
+    zip64 true
     mergeServiceFiles()
 }
 
@@ -94,6 +88,6 @@ shadowDistZip.enabled = false
 
 // disable tests
 //test.enabled = false
-test.reports.html.enabled = false
+test.reports.html.enabled = true
 
 apply from: 'docker.gradle'
