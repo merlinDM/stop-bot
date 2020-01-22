@@ -4,6 +4,7 @@ plugins {
     id 'application'
     id "com.github.maiflai.scalatest" version "0.25"
     id 'com.github.johnrengelman.shadow' version "5.2.0"
+    id 'java-library'
 }
 
 ext {
@@ -40,19 +41,19 @@ repositories {
 }
 
 dependencies {
-    shadow "org.scala-lang:scala-library:$scala"
-    shadow "org.scala-lang:scala-reflect:$scala"
-    shadow "org.scala-lang:scala-compiler:$scala"
+    api "org.scala-lang:scala-library:$scala"
+    api "org.scala-lang:scala-reflect:$scala"
+    api "org.scala-lang:scala-compiler:$scala"
 
-    compile "com.typesafe.scala-logging:scala-logging_$scalaMajorVersion:$scalaLoggingVersion"
-    compile("org.apache.ignite:ignite-spark:$igniteVersion-SPARK-$sparkVersion") {
+    api "com.typesafe.scala-logging:scala-logging_$scalaMajorVersion:$scalaLoggingVersion"
+    implementation("org.apache.ignite:ignite-spark:$igniteVersion-SPARK-$sparkVersion") {
         exclude group: "org.apache.spark"
         exclude group: "org.apache.hadoop"
     }
 
-    shadow "org.apache.spark:spark-core_$scalaMajorVersion:$sparkVersion"
-    shadow "org.apache.spark:spark-sql_$scalaMajorVersion:$sparkVersion"
-    shadow "org.apache.spark:spark-streaming_$scalaMajorVersion:$sparkVersion"
+    api "org.apache.spark:spark-core_$scalaMajorVersion:$sparkVersion"
+    api "org.apache.spark:spark-sql_$scalaMajorVersion:$sparkVersion"
+    api "org.apache.spark:spark-streaming_$scalaMajorVersion:$sparkVersion"
     implementation("org.apache.spark:spark-sql-kafka-0-10_$scalaMajorVersion:$sparkVersion")
 
     implementation "com.datastax.cassandra:cassandra-driver-core:$cassandraDriverVerion"
@@ -61,18 +62,11 @@ dependencies {
         exclude group: 'org.apache.spark'
     }
 
-    testCompile "org.scalatest:scalatest_$scalaMajorVersion:$scalaTestVersion"
-    testRuntime "org.pegdown:pegdown:$pegdownVersion"
-    testRuntime "org.slf4j:slf4j-log4j12:$slf4jVersion"
+    testImplementation "org.scalatest:scalatest_$scalaMajorVersion:$scalaTestVersion"
+    testImplementation "org.pegdown:pegdown:$pegdownVersion"
+    testImplementation "org.slf4j:slf4j-log4j12:$slf4jVersion"
 
-    testCompile "org.scalatest:scalatest_$scalaMajorVersion:$scalaTestVersion"
-}
-
-configurations.testCompile {
-    extendsFrom configurations.shadow
-}
-configurations.runtime {
-    extendsFrom configurations.shadow
+    testImplementation "org.scalatest:scalatest_$scalaMajorVersion:$scalaTestVersion"
 }
 
 shadowJar {
