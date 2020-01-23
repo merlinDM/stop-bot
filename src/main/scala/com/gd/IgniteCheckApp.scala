@@ -17,8 +17,8 @@ object IgniteCheckApp extends StrictLogging with SetupSpark  {
     source.init(datadir = "/shared/data/")
     val sDF = source.read()
 
-    val sink = new IgniteSink()
-    sink.init(configFileLocation = "ignite-client-config.xml")
+    val igniteConfig = IgniteSourceConfiguration(configFile = "ignite-client-config.xml")
+    val sink = new IgniteSource(igniteConfig)
     sink.write(sDF)
 
   }
