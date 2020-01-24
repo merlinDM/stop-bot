@@ -4,10 +4,9 @@ import java.sql.Timestamp
 
 import com.typesafe.scalalogging.StrictLogging
 import javax.cache.expiry.{CreatedExpiryPolicy, Duration}
-import org.apache.ignite.{Ignite, IgniteCache, Ignition}
 import org.apache.ignite.configuration.{CacheConfiguration, IgniteConfiguration}
 import org.apache.ignite.spark.IgniteContext
-import org.apache.ignite.spark.IgniteDataFrameSettings._
+import org.apache.ignite.{Ignite, IgniteCache, Ignition}
 import org.apache.spark.sql._
 
 class IgniteSource(cfg: IgniteSourceConfiguration = IgniteSourceConfiguration())
@@ -15,9 +14,6 @@ class IgniteSource(cfg: IgniteSourceConfiguration = IgniteSourceConfiguration())
     with StrictLogging {
 
   private val spark: SparkSession = SparkSession.builder().getOrCreate()
-
-  // https://apacheignite-sql.readme.io/docs/create-table
-  private val dummy: String = "dummyTable"
 
   def read(): DataFrame = {
     import spark.implicits._
@@ -29,16 +25,6 @@ class IgniteSource(cfg: IgniteSourceConfiguration = IgniteSourceConfiguration())
       .toDF("ip", "event_time")
 
     df
-//    spark
-//      .read
-//      .format(FORMAT_IGNITE)
-//      .option(OPTION_TABLE, dummy)
-//      .option(OPTION_CONFIG_FILE, cfg.configFile)
-//      .option(OPTION_CREATE_TABLE_PRIMARY_KEY_FIELDS, cfg.primaryKey)
-//      .option(OPTION_DISABLE_SPARK_SQL_OPTIMIZATION, true)
-//      .option(OPTION_CREATE_TABLE_PARAMETERS,
-//        s"BACKUPS=1, TEMPLATE=${cfg.cacheTemplate}, CACHE_NAME=${cfg.tableName}, KEY_TYPE=VARCHAR, VALUE_TYPE=LONG")
-//      .load()
   }
 
   def write(df: DataFrame): Unit = {
@@ -60,8 +46,8 @@ class IgniteSource(cfg: IgniteSourceConfiguration = IgniteSourceConfiguration())
       it.foreach { case (s: String, t: Timestamp) => cache.put(s, t) }
     })
 
-    val ignite = setupIgnite()
-    ignite.close()
+//    val ignite = setupIgnite()
+//    ignite.close()
   }
 
   private def writeStream(dataFrame: DataFrame): Unit = {
@@ -96,7 +82,7 @@ class IgniteSource(cfg: IgniteSourceConfiguration = IgniteSourceConfiguration())
     val cacheConfig = new CacheConfiguration[String, Timestamp]()
     cacheConfig.setName(cfg.tableName)
 
-    val expiryPolicyFactory = CreatedExpiryPolicy.factoryOf(Duration.TEN_MINUTES)
+    val expiryPolicyFactory = CreatedExpiryPolicy.factoryOf(cfg.ttl)
     cacheConfig.setExpiryPolicyFactory(expiryPolicyFactory)
 
     ignite.getOrCreateCache[String, Timestamp](cacheConfig)
@@ -113,7 +99,8 @@ case class IgniteSourceConfiguration(
   tableName: String = "",
   cacheTemplate: String = "botListTemplate",
   primaryKey: String = "ip",
-  saveMode: SaveMode = SaveMode.Append
+  saveMode: SaveMode = SaveMode.Append,
+  ttl: Duration = Duration.TEN_MINUTES
 )
 
 case class BotRecord (
