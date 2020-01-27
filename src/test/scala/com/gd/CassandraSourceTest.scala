@@ -1,39 +1,31 @@
 package com.gd
 
+import com.gd.helpers.IpfixResultHelper
+import javax.cache.configuration.Factory
 import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.SparkSession
-import org.scalatest.FunSuite
+import org.apache.spark.sql.{DataFrame, SaveMode, SparkSession}
+import org.scalatest.{BeforeAndAfterAll, FunSuite}
 
-class CassandraSourceTest extends FunSuite {
+class CassandraSourceTest extends FunSuite with BeforeAndAfterAll with SetupSpark {
 
-  val sparkMasterHost = "127.0.0.1"
-  val cassandraHost = "127.0.0.1"
-  val keyspace = "test"
-  val table = "words"
+  val cassandraHost = "localhost"
+  override protected def appName: String = "Cassandra Test"
 
-  private val spark = SparkSession
-    .builder()
-    .appName("test")
-    .master("local[*]")
-    .config("spark.local.dir", "/tmp/spark")
-    .config("spark.cassandra.connection.host", cassandraHost)
-    .getOrCreate()
+  override protected val spark: SparkSession = setupSpark(cassandraHost = Some(cassandraHost))
 
   test("Cassandra is up") {
 
-    import com.datastax.spark.connector._
+    val helper = new IpfixResultHelper(spark)
+    val sampleDF = helper.staticDF
 
-    val sc = spark.sparkContext
+    val sinkCfg = CassandraSourceConfiguration(keyspace = "stopbot", table = "access_log", mode = SaveMode.Append)
+    val sink = new CassandraSource(sinkCfg)
+    sink.write(sampleDF)
 
-    // Write two rows to the table:
-    val col = sc.parallelize(Seq(("of", "1200"), ("the", "863")))
-    col.saveAsCassandraTable(keyspace, table)
+    val sourceCfg = CassandraSourceConfiguration(keyspace = "stopbot", table = "access_log", mode = SaveMode.Append)
+    val source = new CassandraSource(sourceCfg)
+    val res = source.read()
 
-    // Read the table and print its contents:
-    val rdd: RDD[CassandraRow] = sc.cassandraTable(keyspace, table)
-    rdd.collect().foreach(println)
-
-    sc.stop()
-
+    assert(res.exceptAll(sampleDF).isEmpty)
   }
 }

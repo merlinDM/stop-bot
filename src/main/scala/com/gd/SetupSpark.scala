@@ -8,13 +8,16 @@ trait SetupSpark {
   protected def appName: String
   protected def spark: SparkSession
 
-  protected def setupSpark(name: String = appName): SparkSession = {
+  protected def setupSpark(name: String = appName, cassandraHost: Option[String] = None): SparkSession = {
 
-    // SparkConf allows us to check whether this app has been submitted via script
-    // or executed via `gradle run`
+    // If app is executed via `gradle run`, `spark.master` might be missing.
     val conf = new SparkConf()
     conf.setIfMissing("spark.master", "local[*]")
     conf.setAppName(name)
+
+    cassandraHost.foreach(host =>
+      conf.set("spark.cassandra.connection.host", host)
+    )
 
     val spark = SparkSession
       .builder()
