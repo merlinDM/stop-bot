@@ -52,12 +52,12 @@ class IgniteSource(cfg: IgniteSourceConfiguration = IgniteSourceConfiguration())
 
   private def writeStream(dataFrame: DataFrame): Unit = {
 
-    def f(ds: Dataset[Row], idx: Long): Unit = {
+    def wrappedWrite(ds: Dataset[Row], idx: Long): Unit = {
       logger.info(s"Writing batch #$idx")
       writeBatch(ds)
     }
 
-    val query = dataFrame.writeStream.foreachBatch(f _ ).start()
+    val query = dataFrame.writeStream.foreachBatch(wrappedWrite _ ).start()
 
     cfg.timeoutMs match {
       case Some(ts) =>
@@ -69,6 +69,7 @@ class IgniteSource(cfg: IgniteSourceConfiguration = IgniteSourceConfiguration())
   }
 
   private def setupIgnite(): Ignite = {
+    // The file contains discovery settings
     val is = this.getClass.getClassLoader.getResourceAsStream(cfg.configFile)
     val igniteConfig = Ignition.loadSpringBean[IgniteConfiguration](is, cfg.configBean)
     igniteConfig.setIgniteInstanceName(cfg.instanceName)
