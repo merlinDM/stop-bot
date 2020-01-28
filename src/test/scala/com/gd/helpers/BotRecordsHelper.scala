@@ -2,6 +2,7 @@ package com.gd.helpers
 
 import java.sql.Timestamp
 
+import com.gd.model.BotRecord
 import org.apache.spark.sql.{DataFrame, SparkSession}
 
 import scala.collection.mutable
@@ -17,8 +18,3 @@ class BotRecordsHelper(spark: SparkSession) {
     BotRecord(ip = "192.241.194.11", event_time = new Timestamp(1575987840000L))
   )
 }
-
-case class BotRecord (
-  ip: String,
-  event_time: Timestamp
-)

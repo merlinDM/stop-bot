@@ -2,6 +2,7 @@ package com.gd.helpers
 
 import java.sql.Timestamp
 
+import com.gd.model.AggregatedIpfix
 import org.apache.spark.sql.execution.streaming.{LongOffset, MemoryStream, Offset}
 import org.apache.spark.sql.{DataFrame, SparkSession}
 
@@ -48,5 +49,3 @@ class AggregatedIpfixHelper(spark: SparkSession) {
     AggregatedIpfix(ip = "192.241.194.9", num_of_requests = 1 , is_bot = false, window_start = new Timestamp(1575987840000L), window_end = new Timestamp(1575987850000L))
   )
 }
-
-case class AggregatedIpfix(ip: String, num_of_requests: Long, is_bot: Boolean, window_start: Timestamp, window_end: Timestamp)

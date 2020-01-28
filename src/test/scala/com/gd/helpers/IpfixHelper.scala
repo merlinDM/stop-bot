@@ -2,6 +2,7 @@ package com.gd.helpers
 
 import java.sql.Timestamp
 
+import com.gd.model.Ipfix
 import org.apache.spark.sql.execution.streaming.{LongOffset, MemoryStream, Offset}
 import org.apache.spark.sql.{DataFrame, SparkSession}
 
@@ -108,4 +109,3 @@ class IpfixHelper(spark: SparkSession) {
   )
 }
 
-case class Ipfix(url: String, ip: String, event_type: String, event_time: Timestamp)

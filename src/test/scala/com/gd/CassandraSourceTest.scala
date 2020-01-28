@@ -1,6 +1,7 @@
 package com.gd
 
-import com.gd.helpers.{CassandraClient, IpfixResult, IpfixResultHelper}
+import com.gd.helpers.{CassandraClient, IpfixResultHelper}
+import com.gd.model.IpfixResult
 import org.apache.spark.sql.{SaveMode, SparkSession}
 import org.scalatest.{BeforeAndAfterAll, FunSuite}
 

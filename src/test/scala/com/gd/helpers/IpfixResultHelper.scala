@@ -2,6 +2,7 @@ package com.gd.helpers
 
 import java.sql.Timestamp
 
+import com.gd.model.IpfixResult
 import org.apache.spark.sql.{DataFrame, SparkSession}
 
 class IpfixResultHelper(spark: SparkSession) {
@@ -73,5 +74,3 @@ class IpfixResultHelper(spark: SparkSession) {
   )
 
 }
-
-case class IpfixResult(ip: String, event_time: Timestamp, url: String, event_type: String, is_bot: Boolean)
