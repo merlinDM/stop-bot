@@ -18,7 +18,7 @@ class KafkaSourceTest extends FunSuite {
   private val sampleIpString =
     "\"\\\"127.0.0.1\\\"\""
 
-  test("testParseJson") {
+  test("Test json parser method in Kafka source") {
     val source = new KafkaSource()
     source.init()
 
@@ -28,7 +28,7 @@ class KafkaSourceTest extends FunSuite {
 
     val res = source.parseJson(df).cache()
 
-    res.show(truncate = false)
+//    res.show(truncate = false)
 
     val test_result = "test_result"
     val errors = res
@@ -40,7 +40,7 @@ class KafkaSourceTest extends FunSuite {
     assert(errors == 0)
   }
 
-  test("Throw escape characters from IP address string") {
+  test("Test method that throws escape characters from IP address string") {
 
     val source = new KafkaSource()
     source.init()
@@ -51,7 +51,7 @@ class KafkaSourceTest extends FunSuite {
 
     val res = source.unescapeIp(df).cache()
 
-    res.show(truncate = false)
+//    res.show(truncate = false)
 
     val test_result = "test_result"
     val errors = res
