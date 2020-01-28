@@ -26,8 +26,6 @@ class CassandraSourceTest extends FunSuite with BeforeAndAfterAll with SetupSpar
     val helper = new IpfixResultHelper(spark)
     val sampleDF = helper.staticDF
 
-    sampleDF.show(truncate = false)
-
     val sinkCfg = CassandraSourceConfiguration(keyspace = "stopbot", table = "access_log", mode = SaveMode.Append)
     val sink = new CassandraSource[IpfixResult](sinkCfg)
     sink.write(sampleDF)
@@ -36,10 +34,7 @@ class CassandraSourceTest extends FunSuite with BeforeAndAfterAll with SetupSpar
     val source = new CassandraSource[IpfixResult](sourceCfg)
     val res = source.read()
 
-    res.show(truncate = false)
-
     val diff = res.exceptAll(sampleDF)
-    diff.show()
 
     assert(diff.isEmpty)
   }
