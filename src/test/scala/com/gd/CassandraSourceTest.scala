@@ -13,7 +13,7 @@ class CassandraSourceTest extends FunSuite with BeforeAndAfterAll with SetupSpar
 
   override def beforeAll() {
     client.connect(cassandraHost)
-    client.createSchema()
+    client.truncateTable()
   }
 
   override def afterAll(): Unit = {

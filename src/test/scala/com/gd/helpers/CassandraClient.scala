@@ -12,7 +12,7 @@ class CassandraClient {
     session = cluster.connect
   }
 
-  def createSchema(): Unit = {
+  def truncateTable(): Unit = {
     session.execute(
       """ CREATE KEYSPACE IF NOT EXISTS stopbot
         | WITH REPLICATION = {'class': 'SimpleStrategy', 'replication_factor': 1};
