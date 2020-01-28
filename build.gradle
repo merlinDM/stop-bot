@@ -56,7 +56,7 @@ dependencies {
     api "org.apache.spark:spark-streaming_$scalaMajorVersion:$sparkVersion"
     implementation("org.apache.spark:spark-sql-kafka-0-10_$scalaMajorVersion:$sparkVersion")
 
-    implementation "com.datastax.cassandra:cassandra-driver-core:$cassandraDriverVerion"
+//    implementation "com.datastax.cassandra:cassandra-driver-core:$cassandraDriverVerion"
     implementation("com.datastax.spark:spark-cassandra-connector_$scalaMajorVersion:$cassandraConnectorVersion") {
         exclude group: "org.scala-lang"
         exclude group: 'org.apache.spark'

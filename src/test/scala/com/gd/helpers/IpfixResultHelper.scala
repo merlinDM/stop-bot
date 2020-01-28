@@ -74,4 +74,4 @@ class IpfixResultHelper(spark: SparkSession) {
 
 }
 
-case class IpfixResult(url: String, ip: String, event_type: String, event_time: Timestamp, is_bot: Boolean)
+case class IpfixResult(ip: String, event_time: Timestamp, url: String, event_type: String, is_bot: Boolean)

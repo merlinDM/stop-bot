@@ -1,13 +1,45 @@
 package com.gd
 
-import org.apache.spark.sql.{DataFrame, SaveMode}
+import com.datastax.driver.core.ProtocolVersion
 import com.datastax.spark.connector._
+import com.datastax.spark.connector.cql.TableDef
+import org.apache.spark.sql.{DataFrame, Dataset, Row, SaveMode, SparkSession}
 
-class CassandraSource(cfg: CassandraSourceConfiguration) {
+import scala.reflect.runtime.universe._
 
-  def write(df: DataFrame): Unit = ???
+class CassandraSource[T <: Product : TypeTag](cfg: CassandraSourceConfiguration) {
 
-  def read(): DataFrame = ???
+  def write(df: Dataset[Row]): Unit = {
+    import df.sparkSession.implicits._
+
+    val ds = df.as[T]
+
+    cfg.mode match {
+      case SaveMode.Append =>
+        ds.rdd.saveToCassandra(cfg.keyspace, cfg.table)
+      case SaveMode.ErrorIfExists =>
+        val tableDef = TableDef.fromType[T](cfg.keyspace, cfg.table, ProtocolVersion.NEWEST_SUPPORTED)
+        ds.rdd.saveAsCassandraTableEx(tableDef)
+      case SaveMode.Overwrite =>
+        ds.rdd.saveAsCassandraTable(cfg.keyspace, cfg.table)
+      case SaveMode.Ignore =>
+        ()
+    }
+
+  }
+
+  def read(): DataFrame = {
+    val spark = SparkSession.getActiveSession.get
+
+    val df = spark
+      .read
+      .format("org.apache.spark.sql.cassandra")
+      .option("keyspace", cfg.keyspace)
+      .option("table", cfg.table)
+      .load()
+
+    df
+  }
 
 }
 
