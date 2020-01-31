@@ -5,7 +5,7 @@ import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types.{StringType, StructField, StructType, TimestampType}
 import org.scalatest.FunSuite
 
-class StopBotTransformTest extends FunSuite {
+class BotDetectorTest extends FunSuite {
 
   private val dataFile: String = {
     val pwd = System.getProperty("user.dir")
@@ -27,6 +27,7 @@ class StopBotTransformTest extends FunSuite {
     .builder()
     .appName("test")
     .master("local[*]")
+    .config("spark.driver.host", "localhost")
     .config("spark.local.dir", "/tmp/spark")
     .getOrCreate()
 
@@ -43,7 +44,7 @@ class StopBotTransformTest extends FunSuite {
     val helper = new helpers.IpfixHelper(spark)
     val memoryDF = helper.setupMemoryStream
 
-    val transformer = new StopBotTransform()
+    val transformer = new BotDetector()
     transformer.init()
     val aggregatedDF = transformer.aggregate(memoryDF)
 
@@ -82,7 +83,7 @@ class StopBotTransformTest extends FunSuite {
     val aggregatedDataHelper = new helpers.AggregatedIpfixHelper(spark)
     val aggregatedDF = aggregatedDataHelper.setupMemoryStream
 
-    val transformer = new StopBotTransform()
+    val transformer = new BotDetector()
     transformer.init()
     val joinedDF = transformer.join(memoryDF, aggregatedDF)
 
@@ -120,4 +121,39 @@ class StopBotTransformTest extends FunSuite {
     aggregatedDataHelper.commitOffsets()
   }
 
+//  test("Use state to impose 10 min timeout") {
+//    val aggregatedDataHelper = new helpers.AggregatedIpfixHelper(spark)
+//    val expectedDF = aggregatedDataHelper.staticDF
+//    val aggregatedDF = aggregatedDataHelper.setupMemoryStream
+//
+//    val transformer = new StopBotTransform()
+//    transformer.init()
+//    val timeoutedDF = transformer.applyState(aggregatedDF)
+//
+//    val table = "timeoutedQuery"
+//    val query = timeoutedDF
+//      .writeStream
+//      .format("memory")
+//      .queryName(table)
+//      .start()
+//
+//    while (!aggregatedDataHelper.isEmpty) {
+//      aggregatedDataHelper.pushData()
+//    }
+//
+//    query.processAllAvailable()
+//
+//    val resDF = spark.sqlContext
+//      .table(table)
+//
+//    resDF
+//      .orderBy(col("window_start").asc)
+//      .show(numRows = 100, truncate = false)
+//
+//    expectedDF.show(numRows = 100, truncate = false)
+//
+//    assert(resDF.except(expectedDF).count() == 1)
+//    assert(resDF.except(expectedDF).where("not unix_timestamp(window_start) = 1575987320 and is_bot").count() == 0)
+//
+//  }
 }

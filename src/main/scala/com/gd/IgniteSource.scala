@@ -11,14 +11,14 @@ import org.apache.ignite.spark.IgniteContext
 import org.apache.ignite.{Ignite, IgniteCache, Ignition}
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.sql._
-import org.apache.spark.sql.streaming.{ProcessingTime, StreamingQuery, Trigger}
+import org.apache.spark.sql.streaming.{ProcessingTime, StreamingQuery, StreamingQueryListener, Trigger}
 
 class IgniteSource(cfg: IgniteSourceConfiguration = IgniteSourceConfiguration())
   extends Serializable
     with StrictLogging {
 
   private val spark: SparkSession = SparkSession.builder().getOrCreate()
-  private var igniteContext: IgniteContext = setupIgniteContext()
+  private val igniteContext: IgniteContext = setupIgniteContext()
 
   def read(): DataFrame = {
     import spark.implicits._
@@ -60,7 +60,7 @@ class IgniteSource(cfg: IgniteSourceConfiguration = IgniteSourceConfiguration())
     val query = dataFrame
       .writeStream
       .foreachBatch(wrappedWrite _ )
-      .trigger(Trigger.ProcessingTime(10, TimeUnit.SECONDS))
+      .trigger(cfg.triggerTime)
       .start()
 
     query
@@ -87,6 +87,11 @@ class IgniteSource(cfg: IgniteSourceConfiguration = IgniteSourceConfiguration())
   }
 
   private def setupIgniteContext(): IgniteContext = {
+    val igniteConfigFactory: () => IgniteConfiguration = () => setupIgniteConfiguration()
+
+    val listener = new IgniteStreamingQueryListener(igniteConfigFactory, this.close)
+    spark.streams.addListener(listener)
+
     IgniteContext(spark.sparkContext,
       () => setupIgniteConfiguration())
   }
@@ -114,5 +119,30 @@ case class IgniteSourceConfiguration(
   primaryKey: String = "ip",
   saveMode: SaveMode = SaveMode.Append,
   ttl: Duration = Duration.TEN_MINUTES,
-  silenceIgnite: Boolean = true
+  silenceIgnite: Boolean = true,
+  triggerTime: Trigger = Trigger.ProcessingTime(10, TimeUnit.SECONDS)
 )
+
+class IgniteStreamingQueryListener(
+  igniteConfigFactory: () => IgniteConfiguration,
+  closeFu: () => Unit) extends StreamingQueryListener
+    with StrictLogging {
+
+  private val MAGIC_STRING = "nflqjmg"
+
+  override def onQueryStarted(event: StreamingQueryListener.QueryStartedEvent): Unit = {
+    logger.info(MAGIC_STRING + " query started")
+  }
+
+  override def onQueryProgress(event: StreamingQueryListener.QueryProgressEvent): Unit = {
+
+    logger.info(MAGIC_STRING + " query progressing")
+  }
+
+  override def onQueryTerminated(event: StreamingQueryListener.QueryTerminatedEvent): Unit = {
+    logger.info(MAGIC_STRING + " trying to close ignite instance")
+
+    closeFu()
+  }
+
+}

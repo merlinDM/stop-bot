@@ -1,6 +1,7 @@
 String containerName = "stop-bot-00"
 String containerTag = "gd/spark-stop-bot"
 String dockerWorkingDir = "$project.buildDir/docker"
+String dockerNetwork = "streaming-capstone"
 
 // TODO: this task implicitly requires shadowJar plugin.
 task setupDockerContext(type:Sync) {
@@ -106,6 +107,6 @@ task runDockerImage(type:Exec) {
             "-t",
             "--name", containerName,
             "--hostname", containerName,
-            "--network", "streaming-capstone",
+            "--network", dockerNetwork,
             "$containerTag:latest"
 }

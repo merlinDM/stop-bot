@@ -4,7 +4,7 @@ import com.typesafe.scalalogging.StrictLogging
 import org.apache.log4j.{LogManager, Level}
 import org.apache.spark.sql.SparkSession
 
-object TransformCheckApp extends StrictLogging with SetupSpark {
+object DetectionCheckApp extends StrictLogging with SetupSpark {
 
   override protected val appName: String = "Ignite Integration Test"
   override protected val spark: SparkSession = setupSpark()
@@ -17,7 +17,7 @@ object TransformCheckApp extends StrictLogging with SetupSpark {
     source.init(datadir = "build/docker/data")
     val sDF = source.read()
 
-    val transform = new StopBotTransform()
+    val transform = new BotDetector()
     val tDF = transform.transform(sDF)
 
     val sink = new ConsoleSink()

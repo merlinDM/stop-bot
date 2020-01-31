@@ -19,12 +19,12 @@ class KafkaSourceTest extends FunSuite {
     "\"\\\"127.0.0.1\\\"\""
 
   test("Test json parser method in Kafka source") {
-    val source = new KafkaSource()
-    source.init()
+    val cfg = KafkaSourceConfiguration()
+    val source = new KafkaSource(cfg)
 
     val df = spark
       .createDataFrame(Seq(HelperCaseClass(sampleJsonString)))
-      .select(col("str").as(source.input_column_json))
+      .select(col("str").as(cfg.inputColumnJSON))
 
     val res = source.parseJson(df).cache()
 
@@ -33,7 +33,7 @@ class KafkaSourceTest extends FunSuite {
     val test_result = "test_result"
     val errors = res
       .select(
-        isnull(col(source.output_column_parsed_json)).as(test_result))
+        isnull(col(cfg.outputColumnParsedJSON)).as(test_result))
       .where(col(test_result))
       .count()
 
@@ -42,12 +42,12 @@ class KafkaSourceTest extends FunSuite {
 
   test("Test method that throws escape characters from IP address string") {
 
-    val source = new KafkaSource()
-    source.init()
+    val cfg = KafkaSourceConfiguration()
+    val source = new KafkaSource(cfg)
 
     val df = spark
       .createDataFrame(Seq(HelperCaseClass(sampleIpString)))
-      .select(col("str").as(source.output_column_key))
+      .select(col("str").as(cfg.outputColumnKey))
 
     val res = source.unescapeIp(df).cache()
 
@@ -56,7 +56,7 @@ class KafkaSourceTest extends FunSuite {
     val test_result = "test_result"
     val errors = res
       .select(
-        (col(source.output_column_key) =!= "127.0.0.1").as(test_result))
+        (col(cfg.outputColumnKey) =!= "127.0.0.1").as(test_result))
       .where(col(test_result))
       .count()
 

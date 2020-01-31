@@ -13,7 +13,6 @@ object KafkaCheckApp extends StrictLogging with SetupSpark  {
     logger.info("Starting the application")
 
     val source = new KafkaSource()
-    source.init()
     val sDF = source.read()
 
     val sink = new ConsoleSink()

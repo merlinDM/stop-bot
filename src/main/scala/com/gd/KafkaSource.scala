@@ -4,67 +4,52 @@ import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types.{StringType, StructField, StructType, TimestampType}
 import org.apache.spark.sql.{DataFrame, SparkSession}
 
-class KafkaSource() {
+class KafkaSource(cfg: KafkaSourceConfiguration = KafkaSourceConfiguration()) {
 
-  private var sparkSession: SparkSession = _
-  var input_json_schema: StructType = _
+  private val spark: SparkSession = SparkSession
+    .builder()
+    .getOrCreate()
 
-  val input_column_json = "json_string"
-  val output_column_key = "client_id"
-  val output_column_parsed_json = "parsed_json_string"
-
-  private val bootstrapServers = "kafka-00:9092"
-  private val topic = "test"
-  private val startingOffsets = "earliest"
-  private val retryInterval = 10000
-  private val offsetsPerBatch = 30
-
-  def init(): Unit = {
-    sparkSession = SparkSession
-      .builder()
-      .getOrCreate()
-
-    input_json_schema = StructType(
-      Array(
-        StructField("url", StringType, nullable = false),
-        StructField("ip", StringType, nullable = false),
-        StructField("event_time", TimestampType, nullable = true),
-        StructField("type", StringType, nullable = true)
-      )
+  val inputJSONSchema: StructType = StructType(
+    Array(
+      StructField("url", StringType, nullable = false),
+      StructField("ip", StringType, nullable = false),
+      StructField("event_time", TimestampType, nullable = true),
+      StructField("type", StringType, nullable = true)
     )
-  }
+  )
 
   def read(): DataFrame = {
-    val sdf = sparkSession
+    val sdf = spark
       .readStream
       .format("kafka")
-      .option("kafka.bootstrap.servers", bootstrapServers)
-      .option("subscribe", topic)
-      .option("startingOffsets", startingOffsets)
-      .option("fetchOffset.retryIntervalMs", retryInterval)
-      .option("maxOffsetsPerTrigger", offsetsPerBatch)
+      .option("kafka.bootstrap.servers", cfg.bootstrapServers)
+      .option("subscribe", cfg.topic)
+      .option("startingOffsets", cfg.startingOffsets)
+      .option("fetchOffset.retryIntervalMs", cfg.retryInterval)
+      .option("maxOffsetsPerTrigger", cfg.offsetsPerBatch)
       .load()
-      .selectExpr(s"CAST(key AS STRING) as $output_column_key", s"CAST(value AS STRING) as $input_column_json")
+      .selectExpr(s"CAST(key AS STRING) as ${cfg.outputColumnKey}", s"CAST(value AS STRING) as ${cfg.inputColumnJSON}")
 
     val nested = unescapeIp(parseJson(sdf))
 
     nested
       .select(
-        col(s"$output_column_parsed_json.url"),
-        col(s"$output_column_parsed_json.ip"),
-        col(s"$output_column_parsed_json.event_time").cast(TimestampType),
-        col(s"$output_column_parsed_json.type").as("event_type")
+        col(s"${cfg.outputColumnParsedJSON}.url"),
+        col(s"${cfg.outputColumnParsedJSON}.ip"),
+        col(s"${cfg.outputColumnParsedJSON}.event_time").cast(TimestampType),
+        col(s"${cfg.outputColumnParsedJSON}.type").as("event_type")
       )
   }
 
   def parseJson(sdf: DataFrame): DataFrame = {
-    assert(sdf.schema.fieldNames.contains(input_column_json), "DataFrame")
+    assert(sdf.schema.fieldNames.contains(cfg.inputColumnJSON), "DataFrame")
 
     val tmp_column_name = "extracted_json_string"
     sdf
-      .withColumn(tmp_column_name, translate(col(input_column_json), "\\", ""))
+      .withColumn(tmp_column_name, translate(col(cfg.inputColumnJSON), "\\", ""))
       .withColumn(tmp_column_name, regexp_extract(col(tmp_column_name), "^\\\"(.+)\\\"", 1))
-      .withColumn(output_column_parsed_json, from_json(col(tmp_column_name), input_json_schema))
+      .withColumn(cfg.outputColumnParsedJSON, from_json(col(tmp_column_name), inputJSONSchema))
       .drop(tmp_column_name)
   }
 
@@ -73,9 +58,20 @@ class KafkaSource() {
 
     val tmp_column_name = "translated_client_id"
     sdf
-      .withColumn(tmp_column_name, translate(col(output_column_key), "\\", ""))
+      .withColumn(tmp_column_name, translate(col(cfg.outputColumnKey), "\\", ""))
       .withColumn(tmp_column_name, translate(col(tmp_column_name), "\"", ""))
-      .withColumn(output_column_key, col(tmp_column_name))
+      .withColumn(cfg.outputColumnKey, col(tmp_column_name))
       .drop(tmp_column_name)
   }
 }
+
+case class KafkaSourceConfiguration(
+  inputColumnJSON: String = "json_string",
+  outputColumnKey: String = "client_id",
+  outputColumnParsedJSON: String = "parsed_json_string",
+  bootstrapServers: String = "kafka-00:9092",
+  topic: String = "test",
+  startingOffsets: String = "earliest",
+  retryInterval: Int = 10000,
+  offsetsPerBatch: Int = 30
+)

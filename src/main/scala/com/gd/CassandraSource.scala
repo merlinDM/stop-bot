@@ -3,13 +3,36 @@ package com.gd
 import com.datastax.driver.core.ProtocolVersion
 import com.datastax.spark.connector._
 import com.datastax.spark.connector.cql.TableDef
+import com.typesafe.scalalogging.StrictLogging
+import org.apache.spark.sql.streaming.StreamingQuery
 import org.apache.spark.sql.{DataFrame, Dataset, Row, SaveMode, SparkSession}
 
 import scala.reflect.runtime.universe._
 
-class CassandraSource[T <: Product : TypeTag](cfg: CassandraSourceConfiguration) {
+class CassandraSource[T <: Product : TypeTag](cfg: CassandraSourceConfiguration) extends StrictLogging {
 
-  def write(df: Dataset[Row]): Unit = {
+  def write(df: DataFrame): Unit = {
+    if (df.isStreaming) {
+      writeStream(df)
+    } else {
+      writeBatch(df)
+    }
+
+  }
+
+  def writeStream(dataFrame: DataFrame): StreamingQuery = {
+
+    def wrappedWrite(ds: Dataset[Row], idx: Long): Unit = {
+      logger.info(s"Writing batch #$idx")
+      writeBatch(ds)
+    }
+
+    val query = dataFrame.writeStream.foreachBatch(wrappedWrite _ ).start()
+
+    query
+  }
+
+  def writeBatch(df: Dataset[Row]): Unit = {
     import df.sparkSession.implicits._
 
     val ds = df.as[T]
