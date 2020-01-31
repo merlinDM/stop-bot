@@ -1,6 +1,6 @@
 package com.gd
 
-import com.gd.helpers.{BotRecordsHelper, SetupIgnite}
+import com.gd.helpers.{BotRecordsHelper, IpfixHelper, SetupIgnite}
 import org.apache.spark.SparkConf
 import org.apache.spark.sql.SparkSession
 import org.scalatest.FunSuite
@@ -42,4 +42,31 @@ class IgniteSourceTest extends FunSuite with SetupIgnite {
     assert(df.exceptAll(sample).isEmpty)
   }
 
+  test("Write Streaming DataFrame") {
+    val spark = SparkSession.builder().getOrCreate()
+
+    val sourceDataHelper = new IpfixHelper(spark)
+    val sdf0 = sourceDataHelper.setupMemoryStream
+
+    val sdf1 = sdf0.select("ip", "event_time")
+
+    val sinkCnf = IgniteSourceConfiguration(tableName = "streamingtesttable")
+    val sink = new IgniteSource(sinkCnf)
+    sink.write(sdf1)
+
+    while (!sourceDataHelper.isEmpty) {
+      sourceDataHelper.pushData()
+    }
+
+    val sourceCfg = IgniteSourceConfiguration(tableName = "streamingtesttable")
+    val source = new IgniteSource(sourceCfg)
+    val result = source.read()
+
+    val expectedDataHelper = new IpfixHelper(spark)
+    val expected = expectedDataHelper.staticDF
+      .select("ip", "event_time")
+
+    assert(result.exceptAll(expected).isEmpty)
+
+  }
 }

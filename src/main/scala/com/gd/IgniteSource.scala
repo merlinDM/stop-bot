@@ -1,25 +1,27 @@
 package com.gd
 
 import java.sql.Timestamp
+import java.util.concurrent.TimeUnit
 
+import com.gd.model.BotRecord
 import com.typesafe.scalalogging.StrictLogging
 import javax.cache.expiry.{CreatedExpiryPolicy, Duration}
 import org.apache.ignite.configuration.{CacheConfiguration, IgniteConfiguration}
 import org.apache.ignite.spark.IgniteContext
 import org.apache.ignite.{Ignite, IgniteCache, Ignition}
+import org.apache.log4j.{Level, Logger}
 import org.apache.spark.sql._
+import org.apache.spark.sql.streaming.{ProcessingTime, StreamingQuery, Trigger}
 
 class IgniteSource(cfg: IgniteSourceConfiguration = IgniteSourceConfiguration())
   extends Serializable
     with StrictLogging {
 
   private val spark: SparkSession = SparkSession.builder().getOrCreate()
+  private var igniteContext: IgniteContext = setupIgniteContext()
 
   def read(): DataFrame = {
     import spark.implicits._
-
-    val igniteContext = new IgniteContext(spark.sparkContext,
-      cfg.configFile)
 
     val df = igniteContext.fromCache[String, Timestamp](cfg.tableName)
       .toDF("ip", "event_time")
@@ -39,36 +41,41 @@ class IgniteSource(cfg: IgniteSourceConfiguration = IgniteSourceConfiguration())
   private def writeBatch(df: DataFrame): Unit = {
     import spark.implicits._
 
+    lazy val cache = setupCache(igniteContext.ignite())
     val ds = df.as[BotRecord].map(r => (r.ip, r.event_time))
+
     ds.foreachPartition( it => {
-      val ignite = setupIgnite()
-      val cache = setupCache(ignite)
       it.foreach { case (s: String, t: Timestamp) => cache.put(s, t) }
     })
 
-//    val ignite = setupIgnite()
-//    ignite.close()
   }
 
-  private def writeStream(dataFrame: DataFrame): Unit = {
+  def writeStream(dataFrame: DataFrame): StreamingQuery = {
 
     def wrappedWrite(ds: Dataset[Row], idx: Long): Unit = {
       logger.info(s"Writing batch #$idx")
       writeBatch(ds)
     }
 
-    val query = dataFrame.writeStream.foreachBatch(wrappedWrite _ ).start()
+    val query = dataFrame
+      .writeStream
+      .foreachBatch(wrappedWrite _ )
+      .trigger(Trigger.ProcessingTime(10, TimeUnit.SECONDS))
+      .start()
 
-    cfg.timeoutMs match {
-      case Some(ts) =>
-        query.awaitTermination(ts)
-      case None =>
-        query.awaitTermination()
-    }
-
+    query
   }
 
-  private def setupIgnite(): Ignite = {
+  def close(): Unit = {
+    logger.info(s"Closing Ignite instance ${cfg.instanceName}")
+    igniteContext.close(shutdownIgniteOnWorkers = true)
+  }
+
+  private def setupIgniteConfiguration(): IgniteConfiguration = {
+    if (cfg.silenceIgnite) {
+      Logger.getLogger("org.apache.ignite").setLevel(Level.WARN)
+    }
+
     // The file contains discovery settings
     val is = this.getClass.getClassLoader.getResourceAsStream(cfg.configFile)
     val igniteConfig = Ignition.loadSpringBean[IgniteConfiguration](is, cfg.configBean)
@@ -76,7 +83,12 @@ class IgniteSource(cfg: IgniteSourceConfiguration = IgniteSourceConfiguration())
 
     igniteConfig.setClientMode(true)
 
-    Ignition.getOrStart(igniteConfig)
+    igniteConfig
+  }
+
+  private def setupIgniteContext(): IgniteContext = {
+    IgniteContext(spark.sparkContext,
+      () => setupIgniteConfiguration())
   }
 
   private def setupCache(ignite: Ignite): IgniteCache[String, Timestamp] = {
@@ -101,10 +113,6 @@ case class IgniteSourceConfiguration(
   cacheTemplate: String = "botListTemplate",
   primaryKey: String = "ip",
   saveMode: SaveMode = SaveMode.Append,
-  ttl: Duration = Duration.TEN_MINUTES
-)
-
-case class BotRecord (
-  ip: String,
-  event_time: Timestamp
+  ttl: Duration = Duration.TEN_MINUTES,
+  silenceIgnite: Boolean = true
 )

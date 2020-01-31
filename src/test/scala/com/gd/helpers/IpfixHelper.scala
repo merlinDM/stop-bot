@@ -35,7 +35,11 @@ class IpfixHelper(spark: SparkSession) {
     ipfixMS.commit(currentOffset.asInstanceOf[LongOffset])
   }
 
-  def isEmpty = batches.isEmpty
+  def isEmpty: Boolean = batches.isEmpty
+
+  def staticDF: DataFrame = {
+    spark.createDataFrame(batches.flatten)
+  }
 
   private val batches: mutable.Queue[Array[Ipfix]] = mutable.Queue(
     // not bot
