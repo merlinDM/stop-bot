@@ -5,14 +5,6 @@ import org.apache.spark.sql.functions._
 
 class BotDetector {
 
-  def init(): Unit = {
-
-  }
-
-  def transform(sdf: DataFrame): DataFrame = {
-    throw new NotImplementedError("This method is going to be removed.")
-  }
-
   def aggregate(eventLog: DataFrame): DataFrame = {
     val aggregatedLog = eventLog
       // Value from SLA: user should be registered (put in cache) as bot within 1 minute.
@@ -35,18 +27,19 @@ class BotDetector {
     aggregatedLog
   }
 
+  def filterBots(aggregated: DataFrame): DataFrame = {
+    import aggregated.sparkSession.implicits._
+
+    aggregated
+      .where("is_bot")
+      .select($"ip", $"window_end".as("event_time"))
+  }
+
   def join(eventLog: DataFrame, botList: DataFrame): DataFrame = {
     import eventLog.sparkSession.implicits._
 
     val joinedDF = eventLog.as("raw")
-      .join(
-        botList.as("agg"),
-        expr(
-          """
-            |raw.ip = agg.ip AND
-            |raw.event_time >= agg.event_time AND unix_timestamp(raw.event_time) < unix_timestamp(agg.event_time) + 600
-            |""".stripMargin),
-        "inner")
+      .join(botList.as("agg"),Seq("ip"), "left_outer")
       .withColumn("is_bot", $"raw.event_time" >= $"agg.event_time" &&
         unix_timestamp($"raw.event_time") < unix_timestamp($"agg.event_time") + 600
       )

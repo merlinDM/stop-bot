@@ -17,11 +17,11 @@ object DetectionCheckApp extends StrictLogging with SetupSpark {
     source.init(datadir = "build/docker/data")
     val sDF = source.read()
 
-    val transform = new BotDetector()
-    val tDF = transform.transform(sDF)
+    val detector = new BotDetector()
+    val tDF = detector.aggregate(sDF)
 
-    val sink = new ConsoleSink()
-    sink.init(maybeTimeoutMs = None)
+    val consoleSourceConfiguration = ConsoleSourceConfiguration(timeoutMs = None)
+    val sink = new ConsoleSink(consoleSourceConfiguration)
     sink.write(tDF)
 
   }

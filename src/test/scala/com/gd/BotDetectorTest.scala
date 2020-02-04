@@ -45,7 +45,6 @@ class BotDetectorTest extends FunSuite {
     val memoryDF = helper.setupMemoryStream
 
     val transformer = new BotDetector()
-    transformer.init()
     val aggregatedDF = transformer.aggregate(memoryDF)
 
     val table = "aggregationQuery"
@@ -84,7 +83,6 @@ class BotDetectorTest extends FunSuite {
     val aggregatedDF = aggregatedDataHelper.setupMemoryStream
 
     val transformer = new BotDetector()
-    transformer.init()
     val joinedDF = transformer.join(memoryDF, aggregatedDF)
 
     val table = "joinedQuery"

@@ -12,11 +12,14 @@ object KafkaCheckApp extends StrictLogging with SetupSpark  {
     // Set up Logging
     logger.info("Starting the application")
 
-    val source = new KafkaSource()
+    val sourceConfiguration = KafkaSourceConfiguration(
+      retryInterval = 20
+    )
+    val source = new KafkaSource(sourceConfiguration)
     val sDF = source.read()
 
-    val sink = new ConsoleSink()
-    sink.init()
+    val consoleSourceConfiguration = ConsoleSourceConfiguration(timeoutMs = None)
+    val sink = new ConsoleSink(consoleSourceConfiguration)
     sink.write(sDF)
 
   }
